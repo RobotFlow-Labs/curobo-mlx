@@ -1,10 +1,10 @@
 """Tests for the multi-stage solver."""
 
-import pytest
 import mlx.core as mx
+import pytest
 
+from curobo_mlx.adapters.optimizers.lbfgs_opt import LBFGSConfig, MLXLBFGSOpt
 from curobo_mlx.adapters.optimizers.mppi import MLXMPPI, MPPIConfig
-from curobo_mlx.adapters.optimizers.lbfgs_opt import MLXLBFGSOpt, LBFGSConfig
 from curobo_mlx.adapters.optimizers.solver import MLXSolver
 
 
@@ -30,8 +30,13 @@ class TestSolverChain:
 
         # MPPI alone
         mppi_config = MPPIConfig(
-            horizon=H, d_action=D, n_particles=128,
-            n_iters=5, gamma=0.5, noise_sigma=1.0, seed=42,
+            horizon=H,
+            d_action=D,
+            n_particles=128,
+            n_iters=5,
+            gamma=0.5,
+            noise_sigma=1.0,
+            seed=42,
         )
         mppi_only = MLXMPPI(mppi_config, quadratic_cost_3d)
         initial = mx.ones((1, H, D)) * 5.0
@@ -42,7 +47,9 @@ class TestSolverChain:
         mx.random.seed(42)
         mppi = MLXMPPI(mppi_config, quadratic_cost_3d)
         lbfgs_config = LBFGSConfig(
-            n_iters=15, horizon=H, d_action=D,
+            n_iters=15,
+            horizon=H,
+            d_action=D,
             lbfgs_history=3,
             line_search_scale=[0.0, 0.1, 0.5, 1.0],
         )
@@ -63,8 +70,13 @@ class TestSolverSingleOptimizer:
         """Solver with just MPPI should work."""
         mx.random.seed(10)
         config = MPPIConfig(
-            horizon=H, d_action=D, n_particles=64,
-            n_iters=3, gamma=0.5, noise_sigma=1.0, seed=10,
+            horizon=H,
+            d_action=D,
+            n_particles=64,
+            n_iters=3,
+            gamma=0.5,
+            noise_sigma=1.0,
+            seed=10,
         )
         mppi = MLXMPPI(config, quadratic_cost_3d)
         solver = MLXSolver([mppi], quadratic_cost_3d)
@@ -80,7 +92,9 @@ class TestSolverSingleOptimizer:
     def test_lbfgs_only(self):
         """Solver with just L-BFGS should work."""
         config = LBFGSConfig(
-            n_iters=10, horizon=H, d_action=D,
+            n_iters=10,
+            horizon=H,
+            d_action=D,
             lbfgs_history=3,
             line_search_scale=[0.0, 0.1, 0.5, 1.0],
         )
@@ -104,8 +118,14 @@ class TestSolverShapes:
         """Output shapes should match input shapes."""
         mx.random.seed(0)
         config = MPPIConfig(
-            n_envs=B, horizon=H, d_action=D, n_particles=32,
-            n_iters=1, gamma=0.5, noise_sigma=0.5, seed=0,
+            n_envs=B,
+            horizon=H,
+            d_action=D,
+            n_particles=32,
+            n_iters=1,
+            gamma=0.5,
+            noise_sigma=0.5,
+            seed=0,
         )
         mppi = MLXMPPI(config, quadratic_cost_3d)
         solver = MLXSolver([mppi], quadratic_cost_3d)

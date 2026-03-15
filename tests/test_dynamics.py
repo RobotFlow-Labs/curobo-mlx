@@ -2,7 +2,6 @@
 
 import mlx.core as mx
 import numpy as np
-import pytest
 
 from curobo_mlx.adapters.dynamics import MLXKinematicModel
 from curobo_mlx.adapters.types import MLXJointState
@@ -31,7 +30,7 @@ class TestMLXKinematicModel:
         # After the first few timesteps (ghost reconstruction), velocity
         # should be zero since positions are constant
         # Check last half of trajectory where ghost effects have settled
-        vel_late = np.array(result.velocity[:, H // 2:, :])
+        vel_late = np.array(result.velocity[:, H // 2 :, :])
         np.testing.assert_allclose(vel_late, 0.0, atol=1e-5)
 
     def test_linear_ramp_constant_velocity(self):
@@ -110,7 +109,7 @@ class TestMLXKinematicModel:
 
         # Quadratic position: u[h] = (h+1)^2 * 0.01
         h_vals = mx.arange(1, H + 1).reshape(1, H, 1).astype(mx.float32)
-        u = h_vals ** 2 * 0.01
+        u = h_vals**2 * 0.01
 
         start = self._make_start_state(B, D, pos=0.0)
         result = model.forward(u, start)

@@ -1,8 +1,7 @@
 """Tests for line search and update_best kernels."""
 
-import numpy as np
 import mlx.core as mx
-import pytest
+import numpy as np
 
 from curobo_mlx.kernels.line_search import wolfe_line_search
 from curobo_mlx.kernels.update_best import update_best
@@ -22,7 +21,7 @@ class TestWolfeLineSearch:
 
     def test_known_minimum(self):
         """With a quadratic cost, line search should find the best step."""
-        B, L1, L2 = 2, 6, 3
+        B, _L1, L2 = 2, 6, 3
 
         # Quadratic: f(x) = 0.5 * ||x||^2
         # Search direction: d = -grad = -x_0
@@ -36,7 +35,7 @@ class TestWolfeLineSearch:
         x_set = x_0[:, None, :] + alphas[None, :, None] * step_vec[:, None, :]
 
         # cost at each candidate: 0.5 * ||x||^2
-        c = 0.5 * mx.sum(x_set ** 2, axis=-1)  # [B, L1]
+        c = 0.5 * mx.sum(x_set**2, axis=-1)  # [B, L1]
 
         # gradient at each candidate: x
         g_x = x_set  # grad of 0.5*||x||^2 is x
@@ -47,10 +46,19 @@ class TestWolfeLineSearch:
         c_idx = mx.zeros([B], dtype=mx.int32)
 
         best_x, best_c, best_grad = wolfe_line_search(
-            best_x, best_c, best_grad,
-            g_x, x_set, step_vec, c, alphas, c_idx,
-            c_1=1e-4, c_2=0.9,
-            strong_wolfe=True, approx_wolfe=False,
+            best_x,
+            best_c,
+            best_grad,
+            g_x,
+            x_set,
+            step_vec,
+            c,
+            alphas,
+            c_idx,
+            c_1=1e-4,
+            c_2=0.9,
+            strong_wolfe=True,
+            approx_wolfe=False,
         )
         mx.eval(best_x, best_c, best_grad)
 
@@ -63,7 +71,7 @@ class TestWolfeLineSearch:
 
     def test_armijo_condition_satisfied(self):
         """Selected step should satisfy Armijo condition."""
-        B, L1, L2 = 1, 4, 2
+        B, _L1, L2 = 1, 4, 2
 
         x_0 = mx.array([[3.0, 4.0]])
         step_vec = mx.array([[-1.0, -1.0]])  # descent direction
@@ -71,7 +79,7 @@ class TestWolfeLineSearch:
 
         x_set = x_0 + alphas[:, None] * step_vec
         x_set = x_set[None]  # [1, 4, 2]
-        c = 0.5 * mx.sum(x_set ** 2, axis=-1)  # [1, 4]
+        c = 0.5 * mx.sum(x_set**2, axis=-1)  # [1, 4]
         g_x = x_set  # [1, 4, 2]
 
         best_x = mx.zeros([B, L2])
@@ -80,23 +88,32 @@ class TestWolfeLineSearch:
         c_idx = mx.zeros([B], dtype=mx.int32)
 
         best_x, best_c, best_grad = wolfe_line_search(
-            best_x, best_c, best_grad,
-            g_x, x_set, step_vec, c, alphas, c_idx,
-            c_1=1e-4, c_2=0.9,
-            strong_wolfe=True, approx_wolfe=False,
+            best_x,
+            best_c,
+            best_grad,
+            g_x,
+            x_set,
+            step_vec,
+            c,
+            alphas,
+            c_idx,
+            c_1=1e-4,
+            c_2=0.9,
+            strong_wolfe=True,
+            approx_wolfe=False,
         )
         mx.eval(best_x, best_c)
 
         # Check Armijo: f(x + a*d) <= f(x) + c1*a*g'*d
         f0 = float(c[0, 0].item())
-        g0_dot_d = float(mx.sum(g_x[0, 0] * step_vec[0]).item())
+        float(mx.sum(g_x[0, 0] * step_vec[0]).item())
         f_best = float(best_c[0].item())
         # Since we don't know which alpha was picked, just check cost decreased
         assert f_best <= f0 + 1e-8
 
     def test_batch_independence(self):
         """Each batch element should be processed independently."""
-        B, L1, L2 = 2, 4, 2
+        B, _L1, L2 = 2, 4, 2
 
         # Different starting points per batch
         x_0 = mx.array([[1.0, 0.0], [0.0, 1.0]])
@@ -104,7 +121,7 @@ class TestWolfeLineSearch:
         alphas = mx.array([0.0, 0.3, 0.6, 1.0])
 
         x_set = x_0[:, None, :] + alphas[None, :, None] * step_vec[:, None, :]
-        c = 0.5 * mx.sum(x_set ** 2, axis=-1)
+        c = 0.5 * mx.sum(x_set**2, axis=-1)
         g_x = x_set
 
         best_x = mx.zeros([B, L2])
@@ -113,10 +130,19 @@ class TestWolfeLineSearch:
         c_idx = mx.zeros([B], dtype=mx.int32)
 
         best_x, best_c, best_grad = wolfe_line_search(
-            best_x, best_c, best_grad,
-            g_x, x_set, step_vec, c, alphas, c_idx,
-            c_1=1e-4, c_2=0.9,
-            strong_wolfe=True, approx_wolfe=False,
+            best_x,
+            best_c,
+            best_grad,
+            g_x,
+            x_set,
+            step_vec,
+            c,
+            alphas,
+            c_idx,
+            c_1=1e-4,
+            c_2=0.9,
+            strong_wolfe=True,
+            approx_wolfe=False,
         )
         mx.eval(best_x, best_c)
 
@@ -127,7 +153,7 @@ class TestWolfeLineSearch:
 
     def test_fallback_to_armijo(self):
         """When curvature condition fails, should fall back to Armijo-only."""
-        B, L1, L2 = 1, 3, 1
+        B, _L1, L2 = 1, 3, 1
 
         x_0 = mx.array([[5.0]])
         step_vec = mx.array([[-1.0]])
@@ -144,10 +170,19 @@ class TestWolfeLineSearch:
         c_idx = mx.zeros([B], dtype=mx.int32)
 
         best_x, best_c, _ = wolfe_line_search(
-            best_x, best_c, best_grad,
-            g_x, x_set, step_vec, c, alphas, c_idx,
-            c_1=1e-4, c_2=0.9,
-            strong_wolfe=True, approx_wolfe=False,
+            best_x,
+            best_c,
+            best_grad,
+            g_x,
+            x_set,
+            step_vec,
+            c,
+            alphas,
+            c_idx,
+            c_1=1e-4,
+            c_2=0.9,
+            strong_wolfe=True,
+            approx_wolfe=False,
         )
         mx.eval(best_c)
 
@@ -172,9 +207,16 @@ class TestUpdateBest:
         q = mx.ones([N, D])
 
         new_cost, new_q, new_iter = update_best(
-            best_cost, best_q, best_iteration, current_iteration,
-            cost, q, d_opt=D, iteration=0,
-            delta_threshold=0.0, relative_threshold=1.0,
+            best_cost,
+            best_q,
+            best_iteration,
+            current_iteration,
+            cost,
+            q,
+            d_opt=D,
+            iteration=0,
+            delta_threshold=0.0,
+            relative_threshold=1.0,
         )
         mx.eval(new_cost, new_q, new_iter)
 
@@ -200,9 +242,16 @@ class TestUpdateBest:
         q = mx.ones([N, D])
 
         new_cost, new_q, new_iter = update_best(
-            best_cost, best_q, best_iteration, current_iteration,
-            cost, q, d_opt=D, iteration=0,
-            delta_threshold=0.1, relative_threshold=1.0,
+            best_cost,
+            best_q,
+            best_iteration,
+            current_iteration,
+            cost,
+            q,
+            d_opt=D,
+            iteration=0,
+            delta_threshold=0.1,
+            relative_threshold=1.0,
         )
         mx.eval(new_cost, new_q, new_iter)
 
@@ -222,14 +271,21 @@ class TestUpdateBest:
         q = mx.ones([N, D])
 
         new_cost, _, _ = update_best(
-            best_cost, best_q, best_iteration, current_iteration,
-            cost, q, d_opt=D, iteration=0,
-            delta_threshold=0.0, relative_threshold=0.9,  # cost must be < 9.0
+            best_cost,
+            best_q,
+            best_iteration,
+            current_iteration,
+            cost,
+            q,
+            d_opt=D,
+            iteration=0,
+            delta_threshold=0.0,
+            relative_threshold=0.9,  # cost must be < 9.0
         )
         mx.eval(new_cost)
 
         assert float(new_cost[0].item()) == 10.0  # 9.95 > 10*0.9=9.0
-        assert float(new_cost[1].item()) == 8.0   # 8.0 < 9.0
+        assert float(new_cost[1].item()) == 8.0  # 8.0 < 9.0
 
     def test_iteration_tracking(self):
         """best_iteration should reset on improvement, decrement otherwise."""
@@ -244,12 +300,19 @@ class TestUpdateBest:
         q = mx.ones([N, D])
 
         _, _, new_iter = update_best(
-            best_cost, best_q, best_iteration, current_iteration,
-            cost, q, d_opt=D, iteration=0,
-            delta_threshold=0.0, relative_threshold=1.0,
+            best_cost,
+            best_q,
+            best_iteration,
+            current_iteration,
+            cost,
+            q,
+            d_opt=D,
+            iteration=0,
+            delta_threshold=0.0,
+            relative_threshold=1.0,
         )
         mx.eval(new_iter)
 
-        assert int(new_iter[0].item()) == 0   # improved -> reset to 0
-        assert int(new_iter[1].item()) == 4   # not improved -> 5-1=4
-        assert int(new_iter[2].item()) == 4   # cost==best, diff=0, not > threshold
+        assert int(new_iter[0].item()) == 0  # improved -> reset to 0
+        assert int(new_iter[1].item()) == 4  # not improved -> 5-1=4
+        assert int(new_iter[2].item()) == 4  # cost==best, diff=0, not > threshold

@@ -12,7 +12,6 @@ from curobo_mlx._torch_compat import (
     check_all_close,
     clamp,
     eye,
-    get_mlx_version,
     linspace,
     map_dtype,
     matmul,
@@ -28,7 +27,6 @@ from curobo_mlx._torch_compat import (
     zeros,
 )
 
-
 # ---------------------------------------------------------------------------
 # MLX version
 # ---------------------------------------------------------------------------
@@ -36,6 +34,8 @@ from curobo_mlx._torch_compat import (
 
 class TestMLXVersion:
     def test_version_string(self):
+        from curobo_mlx._backend import get_mlx_version
+
         ver = get_mlx_version()
         assert isinstance(ver, str)
         assert "." in ver  # e.g. "0.22.1"
@@ -228,9 +228,10 @@ class TestFactories:
         np.testing.assert_array_equal(np.array(a), np.arange(2, 8, 2, dtype=np.int32))
 
     def test_linspace(self):
-        l = linspace(0.0, 1.0, 5)
-        mx.eval(l)
-        np.testing.assert_allclose(np.array(l), np.linspace(0, 1, 5, dtype=np.float32), atol=1e-6)
+        ls_result = linspace(0.0, 1.0, 5)
+        mx.eval(ls_result)
+        expected = np.linspace(0, 1, 5, dtype=np.float32)
+        np.testing.assert_allclose(np.array(ls_result), expected, atol=1e-6)
 
     def test_tensor(self):
         t = tensor([1.0, 2.0, 3.0])

@@ -25,9 +25,7 @@ def quaternion_multiply(q1: mx.array, q2: mx.array) -> mx.array:
 
 def quaternion_conjugate(q: mx.array) -> mx.array:
     """q* = (w, -x, -y, -z). [*, 4] -> [*, 4]"""
-    return mx.concatenate(
-        [q[..., :1], -q[..., 1:]], axis=-1
-    )
+    return mx.concatenate([q[..., :1], -q[..., 1:]], axis=-1)
 
 
 def quaternion_inverse(q: mx.array) -> mx.array:
@@ -134,18 +132,18 @@ def rotation_matrix_to_quaternion(R: mx.array) -> mx.array:
     cond_00_lt_neg11 = t00 < -t11
 
     # Build w, x, y, z
-    w = mx.where(cond_22_neg,
-                 mx.where(cond_00_gt_11, q1_w, q2_w),
-                 mx.where(cond_00_lt_neg11, q3_w, q4_w))
-    x = mx.where(cond_22_neg,
-                 mx.where(cond_00_gt_11, q1_x, q2_x),
-                 mx.where(cond_00_lt_neg11, q3_x, q4_x))
-    y = mx.where(cond_22_neg,
-                 mx.where(cond_00_gt_11, q1_y, q2_y),
-                 mx.where(cond_00_lt_neg11, q3_y, q4_y))
-    z = mx.where(cond_22_neg,
-                 mx.where(cond_00_gt_11, q1_z, q2_z),
-                 mx.where(cond_00_lt_neg11, q3_z, q4_z))
+    w = mx.where(
+        cond_22_neg, mx.where(cond_00_gt_11, q1_w, q2_w), mx.where(cond_00_lt_neg11, q3_w, q4_w)
+    )
+    x = mx.where(
+        cond_22_neg, mx.where(cond_00_gt_11, q1_x, q2_x), mx.where(cond_00_lt_neg11, q3_x, q4_x)
+    )
+    y = mx.where(
+        cond_22_neg, mx.where(cond_00_gt_11, q1_y, q2_y), mx.where(cond_00_lt_neg11, q3_y, q4_y)
+    )
+    z = mx.where(
+        cond_22_neg, mx.where(cond_00_gt_11, q1_z, q2_z), mx.where(cond_00_lt_neg11, q3_z, q4_z)
+    )
 
     q = mx.stack([w, x, y, z], axis=-1)
     return quaternion_normalize(q)

@@ -1,9 +1,8 @@
 """Tests for the L-BFGS optimizer."""
 
-import pytest
 import mlx.core as mx
 
-from curobo_mlx.adapters.optimizers.lbfgs_opt import MLXLBFGSOpt, LBFGSConfig
+from curobo_mlx.adapters.optimizers.lbfgs_opt import LBFGSConfig, MLXLBFGSOpt
 
 
 def quadratic_cost(x: mx.array) -> mx.array:
@@ -29,7 +28,7 @@ def rosenbrock_cost(x: mx.array) -> mx.array:
     """
     a = x[:, 0]
     b = x[:, 1]
-    return (1.0 - a) ** 2 + 100.0 * (b - a ** 2) ** 2
+    return (1.0 - a) ** 2 + 100.0 * (b - a**2) ** 2
 
 
 def shifted_quadratic_cost(x: mx.array, target: float = 3.0) -> mx.array:

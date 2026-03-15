@@ -20,24 +20,21 @@ import math
 
 import mlx.core as mx
 import numpy as np
-import pytest
 
+from curobo_mlx.curobolib.geom import (
+    get_sphere_obb_collision,
+    get_swept_sphere_obb_collision,
+)
 from curobo_mlx.kernels.collision import (
     _compute_closest_point,
-    _quat_rotate,
     _inv_quat_rotate,
+    _quat_rotate,
     _scale_eta_metric,
-    _transform_sphere_quat,
     sphere_obb_distance,
     sphere_obb_distance_vectorized,
     sphere_obb_signed_distance,
     swept_sphere_obb_distance,
 )
-from curobo_mlx.curobolib.geom import (
-    get_sphere_obb_collision,
-    get_swept_sphere_obb_collision,
-)
-
 
 # ---------------------------------------------------------------------------
 # Helpers to build OBB data in upstream format
@@ -68,9 +65,7 @@ def _make_identity_obb(
     return mat, bounds, enable
 
 
-def _make_sphere(
-    x: float, y: float, z: float, r: float, B: int = 1, H: int = 1
-) -> mx.array:
+def _make_sphere(x: float, y: float, z: float, r: float, B: int = 1, H: int = 1) -> mx.array:
     """Create sphere position array [B, H, 1, 4]."""
     return mx.array([[[[x, y, z, r]]]] * B, dtype=mx.float32).reshape(B, H, 1, 4)
 
@@ -212,9 +207,7 @@ class TestSphereOBBSignedDistance:
         obb_quat = mx.array([[1.0, 0.0, 0.0, 0.0]])
         obb_half = mx.array([[1.0, 1.0, 1.0]])
 
-        dist, _ = sphere_obb_signed_distance(
-            sphere_pos, sphere_radius, obb_pos, obb_quat, obb_half
-        )
+        dist, _ = sphere_obb_signed_distance(sphere_pos, sphere_radius, obb_pos, obb_quat, obb_half)
         # Distance from (3,0,0) to box surface at (1,0,0) = 2.0
         # Signed distance = 2.0 - 0.1 = 1.9
         np.testing.assert_allclose(dist.item(), 1.9, atol=0.05)
@@ -227,9 +220,7 @@ class TestSphereOBBSignedDistance:
         obb_quat = mx.array([[1.0, 0.0, 0.0, 0.0]])
         obb_half = mx.array([[1.0, 1.0, 1.0]])
 
-        dist, _ = sphere_obb_signed_distance(
-            sphere_pos, sphere_radius, obb_pos, obb_quat, obb_half
-        )
+        dist, _ = sphere_obb_signed_distance(sphere_pos, sphere_radius, obb_pos, obb_quat, obb_half)
         # Inside at center: min dist to face = 1.0
         # Signed distance = -1.0 - 0.1 = -1.1
         assert dist.item() < 0, "Should be negative (inside)"
@@ -242,16 +233,14 @@ class TestSphereOBBSignedDistance:
         obb_quat = mx.array([[1.0, 0.0, 0.0, 0.0]])
         obb_half = mx.array([[1.0, 1.0, 1.0]])
 
-        dist, _ = sphere_obb_signed_distance(
-            sphere_pos, sphere_radius, obb_pos, obb_quat, obb_half
-        )
+        dist, _ = sphere_obb_signed_distance(sphere_pos, sphere_radius, obb_pos, obb_quat, obb_half)
         # Distance from (1.5,0,0) to face at (1,0,0) = 0.5
         # Signed = 0.5 - 0.5 = 0.0
         np.testing.assert_allclose(dist.item(), 0.0, atol=0.05)
 
     def test_sphere_touching_corner(self):
         """Sphere near OBB corner."""
-        d = math.sqrt(3.0)  # distance from (1+eps, 1+eps, 1+eps) to corner (1,1,1)
+        math.sqrt(3.0)  # distance from (1+eps, 1+eps, 1+eps) to corner (1,1,1)
         offset = 0.5
         sphere_pos = mx.array([[[[1.0 + offset, 1.0 + offset, 1.0 + offset]]]])
         sphere_radius = mx.array([0.0])
@@ -259,9 +248,7 @@ class TestSphereOBBSignedDistance:
         obb_quat = mx.array([[1.0, 0.0, 0.0, 0.0]])
         obb_half = mx.array([[1.0, 1.0, 1.0]])
 
-        dist, _ = sphere_obb_signed_distance(
-            sphere_pos, sphere_radius, obb_pos, obb_quat, obb_half
-        )
+        dist, _ = sphere_obb_signed_distance(sphere_pos, sphere_radius, obb_pos, obb_quat, obb_half)
         expected = math.sqrt(3 * offset * offset)  # ~0.866
         np.testing.assert_allclose(dist.item(), expected, atol=0.05)
 
@@ -271,18 +258,24 @@ class TestSphereOBBSignedDistance:
         sphere_radius = mx.array([0.0])
 
         # Two OBBs: one close, one far
-        obb_pos = mx.array([
-            [0.0, 0.0, 0.0],  # at origin (sphere is inside)
-            [10.0, 0.0, 0.0],  # far away
-        ])
-        obb_quat = mx.array([
-            [1.0, 0.0, 0.0, 0.0],
-            [1.0, 0.0, 0.0, 0.0],
-        ])
-        obb_half = mx.array([
-            [1.0, 1.0, 1.0],
-            [1.0, 1.0, 1.0],
-        ])
+        obb_pos = mx.array(
+            [
+                [0.0, 0.0, 0.0],  # at origin (sphere is inside)
+                [10.0, 0.0, 0.0],  # far away
+            ]
+        )
+        obb_quat = mx.array(
+            [
+                [1.0, 0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0, 0.0],
+            ]
+        )
+        obb_half = mx.array(
+            [
+                [1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0],
+            ]
+        )
         obb_enable = mx.array([1, 1], dtype=mx.uint8)
 
         dist, _ = sphere_obb_signed_distance(
@@ -296,18 +289,24 @@ class TestSphereOBBSignedDistance:
         sphere_pos = mx.array([[[[0.0, 0.0, 0.0]]]])
         sphere_radius = mx.array([0.0])
 
-        obb_pos = mx.array([
-            [0.0, 0.0, 0.0],  # close but disabled
-            [5.0, 0.0, 0.0],  # far but enabled
-        ])
-        obb_quat = mx.array([
-            [1.0, 0.0, 0.0, 0.0],
-            [1.0, 0.0, 0.0, 0.0],
-        ])
-        obb_half = mx.array([
-            [1.0, 1.0, 1.0],
-            [1.0, 1.0, 1.0],
-        ])
+        obb_pos = mx.array(
+            [
+                [0.0, 0.0, 0.0],  # close but disabled
+                [5.0, 0.0, 0.0],  # far but enabled
+            ]
+        )
+        obb_quat = mx.array(
+            [
+                [1.0, 0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0, 0.0],
+            ]
+        )
+        obb_half = mx.array(
+            [
+                [1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0],
+            ]
+        )
         obb_enable = mx.array([0, 1], dtype=mx.uint8)  # first disabled
 
         dist, _ = sphere_obb_signed_distance(
@@ -484,27 +483,35 @@ class TestSphereOBBDistance:
 class TestMultiEnvironment:
     def test_env_query_idx_routing(self):
         """Different batch elements should use different OBB sets."""
-        B = 2
         max_nobs = 1
 
         # Env 0: OBB at origin, env 1: OBB at (10, 0, 0)
-        obb_mat = mx.array([
-            [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0],  # env 0
-            [10.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0],  # env 1
-        ], dtype=mx.float32)
-        obb_bounds = mx.array([
-            [2.0, 2.0, 2.0, 0.0],
-            [2.0, 2.0, 2.0, 0.0],
-        ], dtype=mx.float32)
+        obb_mat = mx.array(
+            [
+                [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0],  # env 0
+                [10.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0],  # env 1
+            ],
+            dtype=mx.float32,
+        )
+        obb_bounds = mx.array(
+            [
+                [2.0, 2.0, 2.0, 0.0],
+                [2.0, 2.0, 2.0, 0.0],
+            ],
+            dtype=mx.float32,
+        )
         obb_enable = mx.array([1, 1], dtype=mx.uint8)
         n_env_obb = mx.array([1, 1], dtype=mx.int32)
         env_query_idx = mx.array([0, 1], dtype=mx.int32)  # batch 0 -> env 0, batch 1 -> env 1
 
         # Sphere at origin for both batches
-        sph = mx.array([
-            [[[0.0, 0.0, 0.0, 0.1]]],
-            [[[0.0, 0.0, 0.0, 0.1]]],
-        ], dtype=mx.float32)
+        sph = mx.array(
+            [
+                [[[0.0, 0.0, 0.0, 0.1]]],
+                [[[0.0, 0.0, 0.0, 0.1]]],
+            ],
+            dtype=mx.float32,
+        )
 
         cost, _, _ = sphere_obb_distance(
             sphere_position=sph,
@@ -533,11 +540,14 @@ class TestMultiEnvironment:
 class TestVectorized:
     def test_matches_loop_version(self):
         """Vectorized version should match loop version for single env."""
-        B, H, S = 2, 1, 2
-        sph = mx.array([
-            [[[0.0, 0.0, 0.0, 0.1], [3.0, 0.0, 0.0, 0.1]]],
-            [[[0.5, 0.0, 0.0, 0.1], [0.0, 3.0, 0.0, 0.1]]],
-        ], dtype=mx.float32)
+        B, _H, _S = 2, 1, 2
+        sph = mx.array(
+            [
+                [[[0.0, 0.0, 0.0, 0.1], [3.0, 0.0, 0.0, 0.1]]],
+                [[[0.5, 0.0, 0.0, 0.1], [0.0, 3.0, 0.0, 0.1]]],
+            ],
+            dtype=mx.float32,
+        )
         mat, bounds, enable = _make_identity_obb(extents=(2.0, 2.0, 2.0))
         n_env_obb, env_query_idx, max_nobs = _default_env(B, 1, 1)
 
@@ -556,9 +566,7 @@ class TestVectorized:
         cost_vec, _, _ = sphere_obb_distance_vectorized(sphere_position=sph, **kwargs)
         mx.eval(cost_loop, cost_vec)
 
-        np.testing.assert_allclose(
-            np.array(cost_loop), np.array(cost_vec), atol=1e-5
-        )
+        np.testing.assert_allclose(np.array(cost_loop), np.array(cost_vec), atol=1e-5)
 
 
 # ---------------------------------------------------------------------------
@@ -571,13 +579,16 @@ class TestSweptSphere:
         """Swept sphere should detect collision along trajectory path."""
         H = 3
         # Sphere passes through OBB between h=0 and h=2
-        sph = mx.array([
+        sph = mx.array(
             [
-                [-3.0, 0.0, 0.0, 0.2],  # h=0: far left
-                [0.0, 0.0, 0.0, 0.2],   # h=1: inside OBB
-                [3.0, 0.0, 0.0, 0.2],   # h=2: far right
-            ]
-        ], dtype=mx.float32).reshape(1, H, 1, 4)
+                [
+                    [-3.0, 0.0, 0.0, 0.2],  # h=0: far left
+                    [0.0, 0.0, 0.0, 0.2],  # h=1: inside OBB
+                    [3.0, 0.0, 0.0, 0.2],  # h=2: far right
+                ]
+            ],
+            dtype=mx.float32,
+        ).reshape(1, H, 1, 4)
 
         mat, bounds, enable = _make_identity_obb(extents=(1.0, 1.0, 1.0))
         n_env_obb, env_query_idx, max_nobs = _default_env(1, 1, 1)
@@ -603,12 +614,15 @@ class TestSweptSphere:
         """Swept sphere should catch collision missed by non-swept check."""
         H = 2
         # Sphere jumps from one side to the other, passing through a small OBB
-        sph = mx.array([
+        sph = mx.array(
             [
-                [-5.0, 0.0, 0.0, 0.1],  # h=0: far left
-                [5.0, 0.0, 0.0, 0.1],   # h=1: far right
-            ]
-        ], dtype=mx.float32).reshape(1, H, 1, 4)
+                [
+                    [-5.0, 0.0, 0.0, 0.1],  # h=0: far left
+                    [5.0, 0.0, 0.0, 0.1],  # h=1: far right
+                ]
+            ],
+            dtype=mx.float32,
+        ).reshape(1, H, 1, 4)
 
         mat, bounds, enable = _make_identity_obb(extents=(2.0, 2.0, 2.0))
         n_env_obb, env_query_idx, max_nobs = _default_env(1, 1, 1)
@@ -711,13 +725,16 @@ class TestGeomWrapper:
     def test_get_swept_sphere_obb_collision(self):
         """Test the swept sphere geom.py wrapper."""
         B, H, S = 1, 3, 1
-        sph = mx.array([
+        sph = mx.array(
             [
-                [-3.0, 0.0, 0.0, 0.2],
-                [0.0, 0.0, 0.0, 0.2],
-                [3.0, 0.0, 0.0, 0.2],
-            ]
-        ], dtype=mx.float32).reshape(B, H, S, 4)
+                [
+                    [-3.0, 0.0, 0.0, 0.2],
+                    [0.0, 0.0, 0.0, 0.2],
+                    [3.0, 0.0, 0.0, 0.2],
+                ]
+            ],
+            dtype=mx.float32,
+        ).reshape(B, H, S, 4)
 
         mat, bounds, enable = _make_identity_obb(extents=(1.0, 1.0, 1.0))
         n_env_obb = mx.array([1], dtype=mx.int32)

@@ -3,12 +3,9 @@
 import os
 
 import mlx.core as mx
-import numpy as np
 import pytest
 
-UPSTREAM_ROOT = os.path.join(
-    os.path.dirname(__file__), "..", "repositories", "curobo-upstream"
-)
+UPSTREAM_ROOT = os.path.join(os.path.dirname(__file__), "..", "repositories", "curobo-upstream")
 UPSTREAM_CONTENT = os.path.join(UPSTREAM_ROOT, "src", "curobo", "content")
 
 

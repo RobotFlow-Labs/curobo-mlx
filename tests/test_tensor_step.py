@@ -1,14 +1,13 @@
 """Tests for tensor step kernel (trajectory integration via finite differences)."""
 
-import numpy as np
 import mlx.core as mx
-import pytest
+import numpy as np
 
 from curobo_mlx.kernels.tensor_step import (
-    position_clique_forward,
-    position_clique_backward,
-    _backward_difference_forward,
     _backward_difference_backward,
+    _backward_difference_forward,
+    position_clique_backward,
+    position_clique_forward,
     tensor_step_position,
 )
 
@@ -55,7 +54,7 @@ class TestPositionCliqueForward:
 
     def test_linear_ramp(self):
         """Linear ramp input should give constant velocity, zero acceleration."""
-        B, H, D = 1, 10, 1
+        _B, H, _D = 1, 10, 1
         dt = 1.0  # 1/dt = 1.0
 
         # Positions: 1, 2, 3, 4, ...
@@ -112,7 +111,7 @@ class TestPositionCliqueForward:
 
     def test_known_quadratic(self):
         """Quadratic trajectory: x(t) = t^2 should give vel=2t, acc=2, jerk=0."""
-        B, H, D = 1, 8, 1
+        _B, H, _D = 1, 8, 1
         dt = 1.0  # 1/dt in physical time = dt in code
 
         # Physical time step is 1/dt = 1.0
@@ -193,9 +192,7 @@ class TestPositionCliqueBackward:
         grad_acc = mx.zeros([B, H, D])
         grad_jerk = mx.zeros([B, H, D])
 
-        grad_u = position_clique_backward(
-            grad_pos, grad_vel, grad_acc, grad_jerk, dt, mode=-1
-        )
+        grad_u = position_clique_backward(grad_pos, grad_vel, grad_acc, grad_jerk, dt, mode=-1)
         mx.eval(grad_u)
 
         check_all_close(grad_u, np.zeros([B, H, D]))
@@ -211,9 +208,7 @@ class TestPositionCliqueBackward:
         grad_acc = mx.zeros([B, H, D])
         grad_jerk = mx.zeros([B, H, D])
 
-        grad_u = position_clique_backward(
-            grad_pos, grad_vel, grad_acc, grad_jerk, dt, mode=-1
-        )
+        grad_u = position_clique_backward(grad_pos, grad_vel, grad_acc, grad_jerk, dt, mode=-1)
         mx.eval(grad_u)
 
         # With only g_pos[3] = 1, the backward formula gives:
@@ -248,9 +243,7 @@ class TestPositionCliqueBackward:
         grad_acc = mx.ones([B, H, D])
         grad_jerk = mx.ones([B, H, D])
 
-        analytical_grad = _backward_difference_backward(
-            grad_pos, grad_vel, grad_acc, grad_jerk, dt
-        )
+        analytical_grad = _backward_difference_backward(grad_pos, grad_vel, grad_acc, grad_jerk, dt)
         mx.eval(analytical_grad)
 
         # Finite difference gradient
@@ -274,13 +267,13 @@ class TestPositionCliqueBackward:
         # reconstructed from start state, so boundary timesteps (h < 4) may differ.
         analytical = np.array(analytical_grad)
         interior_match = np.allclose(
-            analytical[:, 4:H-1, :], fd_grad[:, 4:H-1, :], atol=0.1, rtol=0.05
+            analytical[:, 4 : H - 1, :], fd_grad[:, 4 : H - 1, :], atol=0.1, rtol=0.05
         )
         assert interior_match, (
             f"Interior gradient mismatch.\n"
-            f"Max diff: {np.max(np.abs(analytical[:, 4:H-1, :] - fd_grad[:, 4:H-1, :]))}\n"
-            f"Analytical[4:-1]:\n{analytical[:, 4:H-1, :]}\n"
-            f"Finite diff[4:-1]:\n{fd_grad[:, 4:H-1, :]}"
+            f"Max diff: {np.max(np.abs(analytical[:, 4 : H - 1, :] - fd_grad[:, 4 : H - 1, :]))}\n"
+            f"Analytical[4:-1]:\n{analytical[:, 4 : H - 1, :]}\n"
+            f"Finite diff[4:-1]:\n{fd_grad[:, 4 : H - 1, :]}"
         )
 
         # Also check that the overall structure is correct: last element should be 0
@@ -296,9 +289,7 @@ class TestPositionCliqueBackward:
         grad_acc = mx.random.normal([B, H, D])
         grad_jerk = mx.random.normal([B, H, D])
 
-        grad_u = position_clique_backward(
-            grad_pos, grad_vel, grad_acc, grad_jerk, dt, mode=-1
-        )
+        grad_u = position_clique_backward(grad_pos, grad_vel, grad_acc, grad_jerk, dt, mode=-1)
         mx.eval(grad_u)
 
         assert grad_u.shape == (B, H, D)

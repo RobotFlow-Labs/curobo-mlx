@@ -7,15 +7,14 @@ import mlx.core as mx
 import numpy as np
 import pytest
 
-from curobo_mlx.adapters.costs.cost_base import CostBase, CostConfig
 from curobo_mlx.adapters.costs.bound_cost import BoundCost
-from curobo_mlx.adapters.costs.pose_cost import PoseCost
 from curobo_mlx.adapters.costs.collision_cost import CollisionCost
+from curobo_mlx.adapters.costs.cost_base import CostBase, CostConfig
+from curobo_mlx.adapters.costs.dist_cost import DistCost
+from curobo_mlx.adapters.costs.pose_cost import PoseCost
 from curobo_mlx.adapters.costs.self_collision_cost import SelfCollisionCost
 from curobo_mlx.adapters.costs.stop_cost import StopCost
-from curobo_mlx.adapters.costs.dist_cost import DistCost
 from curobo_mlx.adapters.types import MLXJointState
-
 
 # =====================================================================
 # CostBase
@@ -88,7 +87,7 @@ class TestBoundCost:
         state = self._make_state([[[-2.0, 0.0]]])  # [1, 1, 2]
         c = cost_fn.forward(state)
         mx.eval(c)
-        expected = 1.0 ** 2  # (lower - pos)^2 = (-1 - (-2))^2 = 1
+        expected = 1.0**2  # (lower - pos)^2 = (-1 - (-2))^2 = 1
         np.testing.assert_allclose(np.array(c).item(), expected, atol=1e-6)
 
     def test_positive_cost_upper_violation(self):
@@ -97,7 +96,7 @@ class TestBoundCost:
         state = self._make_state([[[0.0, 3.0]]])
         c = cost_fn.forward(state)
         mx.eval(c)
-        expected = 1.0 ** 2
+        expected = 1.0**2
         np.testing.assert_allclose(np.array(c).item(), expected, atol=1e-6)
 
     def test_velocity_violation(self):
@@ -160,9 +159,7 @@ class TestBoundCost:
         c2 = cost_fn.forward(state2)
         mx.eval(c1, c2)
         # c2 should be 4x c1 (quadratic)
-        np.testing.assert_allclose(
-            np.array(c2).item() / np.array(c1).item(), 4.0, atol=1e-5
-        )
+        np.testing.assert_allclose(np.array(c2).item() / np.array(c1).item(), 4.0, atol=1e-5)
 
 
 # =====================================================================
@@ -174,9 +171,9 @@ class TestPoseCost:
     def test_zero_at_goal(self):
         cfg = CostConfig(weight=1.0)
         cost_fn = PoseCost(config=cfg)
-        pos = mx.array([[[1.0, 2.0, 3.0]]])       # [1, 1, 3]
+        pos = mx.array([[[1.0, 2.0, 3.0]]])  # [1, 1, 3]
         quat = mx.array([[[1.0, 0.0, 0.0, 0.0]]])  # [1, 1, 4]
-        goal_pos = mx.array([[1.0, 2.0, 3.0]])      # [1, 3]
+        goal_pos = mx.array([[1.0, 2.0, 3.0]])  # [1, 3]
         goal_quat = mx.array([[1.0, 0.0, 0.0, 0.0]])
         c = cost_fn.forward(pos, quat, goal_pos, goal_quat)
         mx.eval(c)
@@ -205,9 +202,7 @@ class TestPoseCost:
         c1 = cost1.forward(pos, quat, goal_pos, goal_quat)
         c2 = cost2.forward(pos, quat, goal_pos, goal_quat)
         mx.eval(c1, c2)
-        np.testing.assert_allclose(
-            np.array(c2).item() / np.array(c1).item(), 5.0, atol=1e-4
-        )
+        np.testing.assert_allclose(np.array(c2).item() / np.array(c1).item(), 5.0, atol=1e-4)
 
     def test_single_timestep(self):
         cfg = CostConfig(weight=1.0)
@@ -243,7 +238,7 @@ class TestCollisionCost:
         buf = mx.array([[[0.02]]])
         c = cost_fn.forward(buf)
         mx.eval(c)
-        expected = 0.08 ** 2
+        expected = 0.08**2
         np.testing.assert_allclose(np.array(c).item(), expected, atol=1e-6)
 
     def test_negative_distance(self):
@@ -253,7 +248,7 @@ class TestCollisionCost:
         buf = mx.array([[[-0.05]]])
         c = cost_fn.forward(buf)
         mx.eval(c)
-        expected = 0.05 ** 2
+        expected = 0.05**2
         np.testing.assert_allclose(np.array(c).item(), expected, atol=1e-6)
 
     def test_single_timestep(self):
@@ -277,9 +272,11 @@ class TestSelfCollisionCost:
         cost_fn = SelfCollisionCost(config=cfg)
 
         # Two spheres that do NOT overlap
-        spheres = mx.array([
-            [[0.0, 0.0, 0.0, 0.1], [1.0, 0.0, 0.0, 0.1]],
-        ])  # [1, 2, 4]
+        spheres = mx.array(
+            [
+                [[0.0, 0.0, 0.0, 0.1], [1.0, 0.0, 0.0, 0.1]],
+            ]
+        )  # [1, 2, 4]
         coll_matrix = mx.array([[0, 1], [1, 0]], dtype=mx.uint8)
         offsets = mx.zeros(2)
 
@@ -292,9 +289,11 @@ class TestSelfCollisionCost:
         cost_fn = SelfCollisionCost(config=cfg)
 
         # Two overlapping spheres: distance = 0.1, r_sum = 0.4
-        spheres = mx.array([
-            [[0.0, 0.0, 0.0, 0.2], [0.1, 0.0, 0.0, 0.2]],
-        ])
+        spheres = mx.array(
+            [
+                [[0.0, 0.0, 0.0, 0.2], [0.1, 0.0, 0.0, 0.2]],
+            ]
+        )
         coll_matrix = mx.array([[0, 1], [1, 0]], dtype=mx.uint8)
         offsets = mx.zeros(2)
 
@@ -307,12 +306,14 @@ class TestSelfCollisionCost:
         cfg = CostConfig(weight=1.0)
         cost_fn = SelfCollisionCost(config=cfg)
 
-        spheres = mx.array([
-            [  # batch 0
-                [[0.0, 0.0, 0.0, 0.1], [1.0, 0.0, 0.0, 0.1]],
-                [[0.0, 0.0, 0.0, 0.1], [1.0, 0.0, 0.0, 0.1]],
-            ],
-        ])  # [1, 2, 2, 4]
+        spheres = mx.array(
+            [
+                [  # batch 0
+                    [[0.0, 0.0, 0.0, 0.1], [1.0, 0.0, 0.0, 0.1]],
+                    [[0.0, 0.0, 0.0, 0.1], [1.0, 0.0, 0.0, 0.1]],
+                ],
+            ]
+        )  # [1, 2, 2, 4]
         coll_matrix = mx.array([[0, 1], [1, 0]], dtype=mx.uint8)
         offsets = mx.zeros(2)
 
@@ -411,9 +412,7 @@ class TestDistCost:
         c2 = cost_fn.forward(q2, target)
         mx.eval(c1, c2)
         # c2 should be 4x c1
-        np.testing.assert_allclose(
-            np.array(c2).item() / np.array(c1).item(), 4.0, atol=1e-5
-        )
+        np.testing.assert_allclose(np.array(c2).item() / np.array(c1).item(), 4.0, atol=1e-5)
 
     def test_vec_weight(self):
         cfg = CostConfig(weight=1.0, vec_weight=mx.array([2.0, 0.0]))

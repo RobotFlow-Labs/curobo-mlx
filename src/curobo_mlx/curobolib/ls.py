@@ -40,9 +40,17 @@ def wolfe_line_search(
     Returns: (best_x, best_c, best_grad)
     """
     return _wolfe_line_search(
-        best_x, best_c, best_grad,
-        g_x, x_set, sv, c, al, c_idx,
-        c_1, c_2,
+        best_x,
+        best_c,
+        best_grad,
+        g_x,
+        x_set,
+        sv,
+        c,
+        al,
+        c_idx,
+        c_1,
+        c_2,
         strong_wolfe=sw,
         approx_wolfe=aw,
     )
@@ -73,7 +81,14 @@ def update_best(
     cost_flat = cost.reshape(-1) if cost.ndim > 1 else cost
 
     return _update_best(
-        best_cost, best_q, best_iteration, current_iteration,
-        cost_flat, q, d_opt, iteration,
-        delta_threshold, relative_threshold,
+        best_cost,
+        best_q,
+        best_iteration,
+        current_iteration,
+        cost_flat,
+        q,
+        d_opt,
+        iteration,
+        delta_threshold,
+        relative_threshold,
     )

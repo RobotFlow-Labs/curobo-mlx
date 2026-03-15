@@ -45,9 +45,7 @@ def _make_simple_config():
         link_map=mx.array(np.array([0, 0, 1], dtype=np.int32)),
         joint_map=mx.array(np.array([-1, 0, 1], dtype=np.int32)),
         joint_map_type=mx.array(np.array([-1, 5, 5], dtype=np.int32)),
-        joint_offset_map=mx.array(
-            np.array([[1.0, 0.0], [1.0, 0.0], [1.0, 0.0]], dtype=np.float32)
-        ),
+        joint_offset_map=mx.array(np.array([[1.0, 0.0], [1.0, 0.0], [1.0, 0.0]], dtype=np.float32)),
         store_link_map=mx.array(np.array([2], dtype=np.int32)),
         link_sphere_map=mx.array(np.array([1], dtype=np.int32)),
         robot_spheres=mx.array(np.array([[0.0, 0.0, 0.0, 0.01]], dtype=np.float32)),
@@ -78,8 +76,8 @@ class TestMotionGenSimple:
 
     def test_plan_returns_result(self):
         """plan() returns a MotionGenResult."""
-        from curobo_mlx.api.motion_gen import MotionGen
         from curobo_mlx.adapters.types import MLXPose
+        from curobo_mlx.api.motion_gen import MotionGen
 
         config = _make_simple_config()
         mg = MotionGen(
@@ -106,8 +104,8 @@ class TestMotionGenSimple:
 
     def test_unreachable_ik_failure(self):
         """Unreachable pose produces IK_FAILED status."""
-        from curobo_mlx.api.motion_gen import MotionGen
         from curobo_mlx.adapters.types import MLXPose
+        from curobo_mlx.api.motion_gen import MotionGen
 
         config = _make_simple_config()
         mg = MotionGen(
@@ -136,8 +134,8 @@ class TestMotionGenSimple:
 
     def test_plan_single_alias(self):
         """plan_single is an alias for plan."""
-        from curobo_mlx.api.motion_gen import MotionGen
         from curobo_mlx.adapters.types import MLXPose
+        from curobo_mlx.api.motion_gen import MotionGen
 
         config = _make_simple_config()
         mg = MotionGen(

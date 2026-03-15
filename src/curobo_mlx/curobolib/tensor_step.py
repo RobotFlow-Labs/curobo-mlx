@@ -6,9 +6,8 @@ Provides tensor step functions using MLX instead of CUDA.
 import mlx.core as mx
 
 from curobo_mlx.kernels.tensor_step import (
-    position_clique_forward,
     position_clique_backward,
-    tensor_step_position,
+    position_clique_forward,
 )
 
 
@@ -52,8 +51,12 @@ def tensor_step_pos_clique_fwd(
         traj_dt_val = float(traj_dt)
 
     return position_clique_forward(
-        u_position, start_position, start_velocity, start_acceleration,
-        traj_dt_val, mode=mode,
+        u_position,
+        start_position,
+        start_velocity,
+        start_acceleration,
+        traj_dt_val,
+        mode=mode,
     )
 
 
@@ -95,8 +98,12 @@ def tensor_step_pos_clique_idx_fwd(
         traj_dt_val = float(traj_dt)
 
     return position_clique_forward(
-        u_position, sel_pos, sel_vel, sel_acc,
-        traj_dt_val, mode=mode,
+        u_position,
+        sel_pos,
+        sel_vel,
+        sel_acc,
+        traj_dt_val,
+        mode=mode,
     )
 
 
@@ -131,6 +138,10 @@ def tensor_step_pos_clique_bwd(
         traj_dt_val = float(traj_dt)
 
     return position_clique_backward(
-        grad_position, grad_velocity, grad_acceleration, grad_jerk,
-        traj_dt_val, mode=mode,
+        grad_position,
+        grad_velocity,
+        grad_acceleration,
+        grad_jerk,
+        traj_dt_val,
+        mode=mode,
     )

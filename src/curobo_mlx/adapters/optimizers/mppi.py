@@ -6,7 +6,7 @@ evaluates costs via a rollout function, and updates the mean using
 importance-weighted averaging.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Callable, Optional
 
 import mlx.core as mx
@@ -73,9 +73,7 @@ class MLXMPPI:
             samples: [n_particles, H, D] perturbed trajectories.
         """
         noise = (
-            mx.random.normal(
-                shape=(self.n_particles, self.horizon, self.d_action)
-            )
+            mx.random.normal(shape=(self.n_particles, self.horizon, self.d_action))
             * self.noise_sigma
         )
         # Broadcast mean over particles: mean_action is [n_envs, H, D],
@@ -110,9 +108,7 @@ class MLXMPPI:
         weights = weights / mx.sum(weights)
         return weights
 
-    def optimize(
-        self, mean_action: mx.array, shift_steps: int = 0
-    ) -> tuple[mx.array, mx.array]:
+    def optimize(self, mean_action: mx.array, shift_steps: int = 0) -> tuple[mx.array, mx.array]:
         """Run MPPI optimization.
 
         Args:
@@ -158,24 +154,19 @@ class MLXMPPI:
             weights = self._compute_weights(costs)  # [N]
 
             # Weighted mean update
-            new_mean = mx.sum(
-                weights[:, None, None] * samples, axis=0, keepdims=True
-            )  # [1, H, D]
+            new_mean = mx.sum(weights[:, None, None] * samples, axis=0, keepdims=True)  # [1, H, D]
 
             # Blend with previous mean
             if self.mean_update_blend > 0.0:
                 mean_action = (
-                    self.mean_update_blend * mean_action
-                    + (1.0 - self.mean_update_blend) * new_mean
+                    self.mean_update_blend * mean_action + (1.0 - self.mean_update_blend) * new_mean
                 )
             else:
                 mean_action = new_mean
 
         # Broadcast to n_envs if needed
         if n_envs > 1:
-            mean_action = mx.broadcast_to(
-                mean_action, (n_envs, self.horizon, self.d_action)
-            )
+            mean_action = mx.broadcast_to(mean_action, (n_envs, self.horizon, self.d_action))
 
         if self.sample_mode == "best":
             # Return the single best sample from the last iteration
@@ -183,9 +174,7 @@ class MLXMPPI:
             best_action = samples[best_idx : best_idx + 1]
             best_cost = costs[best_idx : best_idx + 1]
             if n_envs > 1:
-                best_action = mx.broadcast_to(
-                    best_action, (n_envs, self.horizon, self.d_action)
-                )
+                best_action = mx.broadcast_to(best_action, (n_envs, self.horizon, self.d_action))
                 best_cost = mx.broadcast_to(best_cost, (n_envs,))
             return best_action, best_cost
         else:

@@ -1,8 +1,7 @@
 """Tests for L-BFGS optimization step kernel."""
 
-import numpy as np
 import mlx.core as mx
-import pytest
+import numpy as np
 
 from curobo_mlx.kernels.lbfgs import lbfgs_step
 
@@ -12,8 +11,7 @@ def check_all_close(mlx_result, reference, atol=1e-5):
     expected = np.array(reference)
     scale = max(1.0, np.abs(expected).max())
     assert np.allclose(actual, expected, atol=atol * scale), (
-        f"Max diff: {np.abs(actual - expected).max()}, "
-        f"scale: {scale}, atol*scale: {atol * scale}"
+        f"Max diff: {np.abs(actual - expected).max()}, scale: {scale}, atol*scale: {atol * scale}"
     )
 
 
@@ -38,8 +36,15 @@ class TestLBFGSStep:
         # Run a few iterations to build up history
         for _ in range(M + 1):
             step_vec, rho_buffer, y_buffer, s_buffer, x_0, grad_0 = lbfgs_step(
-                step_vec, rho_buffer, y_buffer, s_buffer,
-                q, grad_q, x_0, grad_0, epsilon=0.1,
+                step_vec,
+                rho_buffer,
+                y_buffer,
+                s_buffer,
+                q,
+                grad_q,
+                x_0,
+                grad_0,
+                epsilon=0.1,
             )
             mx.eval(step_vec, rho_buffer, y_buffer, s_buffer, x_0, grad_0)
             # Update q for next iteration
@@ -51,7 +56,7 @@ class TestLBFGSStep:
         dot_products = np.array(mx.sum(step_vec * grad_q, axis=-1))
         descent_frac = float(np.mean(dot_products < 0))
         assert descent_frac >= 0.5, (
-            f"Only {descent_frac*100:.0f}% descent directions (need >=50%): {dot_products}"
+            f"Only {descent_frac * 100:.0f}% descent directions (need >=50%): {dot_products}"
         )
 
     def test_buffer_rolling(self):
@@ -70,8 +75,14 @@ class TestLBFGSStep:
         grad_0 = mx.zeros([B, V])
 
         step_vec, rho_buffer, y_buffer, s_buffer, x_0_new, grad_0_new = lbfgs_step(
-            step_vec, rho_buffer, y_buffer, s_buffer,
-            q, grad_q, x_0, grad_0,
+            step_vec,
+            rho_buffer,
+            y_buffer,
+            s_buffer,
+            q,
+            grad_q,
+            x_0,
+            grad_0,
         )
         mx.eval(step_vec, rho_buffer, y_buffer, s_buffer)
 
@@ -104,9 +115,16 @@ class TestLBFGSStep:
         step_vec = mx.zeros([B, V])
 
         step_vec, rho_buffer, y_buffer, s_buffer, _, _ = lbfgs_step(
-            step_vec, rho_buffer, y_buffer, s_buffer,
-            q, grad_q, x_0, grad_0,
-            epsilon=0.1, stable_mode=True,
+            step_vec,
+            rho_buffer,
+            y_buffer,
+            s_buffer,
+            q,
+            grad_q,
+            x_0,
+            grad_0,
+            epsilon=0.1,
+            stable_mode=True,
         )
         mx.eval(step_vec, rho_buffer)
 
@@ -129,9 +147,16 @@ class TestLBFGSStep:
         step_vec = mx.zeros([B, V])
 
         step_vec, rho_buffer, _, _, _, _ = lbfgs_step(
-            step_vec, rho_buffer, y_buffer, s_buffer,
-            q, grad_q, x_0, grad_0,
-            epsilon=0.1, stable_mode=False,
+            step_vec,
+            rho_buffer,
+            y_buffer,
+            s_buffer,
+            q,
+            grad_q,
+            x_0,
+            grad_0,
+            epsilon=0.1,
+            stable_mode=False,
         )
         mx.eval(step_vec, rho_buffer)
         # With stable_mode=False, rho = 1/0 = inf is expected
@@ -155,15 +180,21 @@ class TestLBFGSStep:
         step_vec = mx.zeros([B, V])
 
         step_vec, rho_buffer, y_buffer, s_buffer, _, _ = lbfgs_step(
-            step_vec, rho_buffer, y_buffer, s_buffer,
-            q, grad_q, x_0, grad_0,
+            step_vec,
+            rho_buffer,
+            y_buffer,
+            s_buffer,
+            q,
+            grad_q,
+            x_0,
+            grad_0,
         )
         mx.eval(step_vec)
 
         # Run batch element 0 alone
-        grad_q_0 = grad_q[0:1]
-        q_0 = q[0:1]
-        x_0_0 = (q - 0.1 * mx.random.normal([B, V]))[0:1]  # won't match, use original
+        grad_q[0:1]
+        q[0:1]
+        (q - 0.1 * mx.random.normal([B, V]))[0:1]  # won't match, use original
         # Actually need to use same x_0 and grad_0
         # Re-seed and redo
         mx.random.seed(77)
@@ -178,8 +209,14 @@ class TestLBFGSStep:
         step_full = mx.zeros([B, V])
 
         step_full, _, _, _, _, _ = lbfgs_step(
-            step_full, rho_buf_full, y_buf_full, s_buf_full,
-            q_full, grad_q_full, x_0_full, grad_0_full,
+            step_full,
+            rho_buf_full,
+            y_buf_full,
+            s_buf_full,
+            q_full,
+            grad_q_full,
+            x_0_full,
+            grad_0_full,
         )
         mx.eval(step_full)
 
@@ -190,8 +227,14 @@ class TestLBFGSStep:
         step_0 = mx.zeros([1, V])
 
         step_0, _, _, _, _, _ = lbfgs_step(
-            step_0, rho_buf_0, y_buf_0, s_buf_0,
-            q_full[0:1], grad_q_full[0:1], x_0_full[0:1], grad_0_full[0:1],
+            step_0,
+            rho_buf_0,
+            y_buf_0,
+            s_buf_0,
+            q_full[0:1],
+            grad_q_full[0:1],
+            x_0_full[0:1],
+            grad_0_full[0:1],
         )
         mx.eval(step_0)
 
@@ -225,9 +268,16 @@ class TestLBFGSStep:
 
         for i in range(50):
             step_vec, rho_buffer, y_buffer, s_buffer, x_0, grad_0 = lbfgs_step(
-                step_vec, rho_buffer, y_buffer, s_buffer,
-                q, grad_q, x_0, grad_0,
-                epsilon=0.1, stable_mode=True,
+                step_vec,
+                rho_buffer,
+                y_buffer,
+                s_buffer,
+                q,
+                grad_q,
+                x_0,
+                grad_0,
+                epsilon=0.1,
+                stable_mode=True,
             )
             mx.eval(step_vec, rho_buffer, y_buffer, s_buffer, x_0, grad_0)
 
@@ -265,8 +315,14 @@ class TestLBFGSStep:
         step_vec = mx.zeros([B, V])
 
         step_vec, rho_buffer, _, _, _, _ = lbfgs_step(
-            step_vec, rho_buffer, y_buffer, s_buffer,
-            q, grad_q, x_0, grad_0,
+            step_vec,
+            rho_buffer,
+            y_buffer,
+            s_buffer,
+            q,
+            grad_q,
+            x_0,
+            grad_0,
         )
         mx.eval(step_vec)
 
@@ -290,9 +346,16 @@ class TestLBFGSStep:
             step_vec = mx.zeros([B, V])
 
             step_vec, _, _, _, _, _ = lbfgs_step(
-                step_vec, rho_buffer, y_buffer, s_buffer,
-                q, grad_q, x_0, grad_0,
-                epsilon=eps, stable_mode=True,
+                step_vec,
+                rho_buffer,
+                y_buffer,
+                s_buffer,
+                q,
+                grad_q,
+                x_0,
+                grad_0,
+                epsilon=eps,
+                stable_mode=True,
             )
             mx.eval(step_vec)
             assert not np.any(np.isnan(np.array(step_vec))), f"NaN with epsilon={eps}"
@@ -312,8 +375,14 @@ class TestLBFGSStep:
         step_vec = mx.zeros([B, V])
 
         step_vec, rho_buffer, y_buffer, s_buffer, _, _ = lbfgs_step(
-            step_vec, rho_buffer, y_buffer, s_buffer,
-            q, grad_q, x_0, grad_0,
+            step_vec,
+            rho_buffer,
+            y_buffer,
+            s_buffer,
+            q,
+            grad_q,
+            x_0,
+            grad_0,
         )
         mx.eval(step_vec)
         assert not np.any(np.isnan(np.array(step_vec)))

@@ -4,7 +4,6 @@ Provides conversion utilities and a minimal torch-like API backed by MLX,
 enabling upstream cuRobo Python code to work with MLX arrays.
 """
 
-import importlib.metadata
 from dataclasses import dataclass, field
 from typing import Optional, Sequence, Union
 
@@ -16,12 +15,6 @@ ArrayLike = Union[mx.array, np.ndarray, list, float, int]
 
 
 # ---------------------------------------------------------------------------
-# MLX version helper -- canonical version lives in _backend.py
-# ---------------------------------------------------------------------------
-
-from curobo_mlx._backend import get_mlx_version  # noqa: F401 — re-export
-
-
 # ---------------------------------------------------------------------------
 # Dtype Mapping
 # ---------------------------------------------------------------------------
@@ -60,6 +53,7 @@ def map_dtype(dtype_str: str) -> mx.Dtype:
 # ---------------------------------------------------------------------------
 # Tensor Conversion
 # ---------------------------------------------------------------------------
+
 
 def to_mlx(data: ArrayLike, dtype: Optional[mx.Dtype] = None) -> mx.array:
     """Convert any array-like to ``mx.array``.
@@ -110,12 +104,14 @@ def to_numpy(data: Union[mx.array, np.ndarray]) -> np.ndarray:
 def to_torch(data: mx.array):
     """Convert ``mx.array`` to ``torch.Tensor`` (requires torch installed)."""
     import torch  # noqa: F811 -- optional import
+
     return torch.from_numpy(to_numpy(data))
 
 
 # ---------------------------------------------------------------------------
 # Device Handling (unified memory = largely a no-op)
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class MLXDevice:
@@ -179,6 +175,7 @@ class TensorDeviceType:
 # ---------------------------------------------------------------------------
 # Torch-like Factory Functions
 # ---------------------------------------------------------------------------
+
 
 def zeros(shape, dtype=mx.float32) -> mx.array:
     """Create a zero-filled ``mx.array``."""
@@ -258,6 +255,7 @@ def norm(x: mx.array, axis=None, keepdims: bool = False) -> mx.array:
 # Testing Utility
 # ---------------------------------------------------------------------------
 
+
 def check_all_close(
     actual: Union[mx.array, np.ndarray],
     expected: Union[mx.array, np.ndarray],
@@ -281,8 +279,7 @@ def check_all_close(
     if not np.allclose(a, e, atol=scaled_atol, rtol=rtol):
         max_diff = float(np.max(np.abs(a - e)))
         raise AssertionError(
-            f"Arrays not close. Max diff: {max_diff}, "
-            f"atol: {scaled_atol}, rtol: {rtol}. {msg}"
+            f"Arrays not close. Max diff: {max_diff}, atol: {scaled_atol}, rtol: {rtol}. {msg}"
         )
     return True
 

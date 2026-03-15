@@ -4,7 +4,7 @@ Provides ``IKResult``, ``TrajOptResult``, and ``MotionGenResult`` as
 structured outputs from the solver pipeline.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 import mlx.core as mx
@@ -36,7 +36,7 @@ class IKResult:
         status = "OK" if self.success else "FAILED"
         return (
             f"IKResult({status}, "
-            f"pos_err={self.position_error*1000:.2f}mm, "
+            f"pos_err={self.position_error * 1000:.2f}mm, "
             f"rot_err={self.rotation_error:.4f}rad, "
             f"{self.solve_time_ms:.1f}ms)"
         )
@@ -100,8 +100,4 @@ class MotionGenResult:
             traj_info = f"{self.trajectory.shape[0]} waypoints"
         else:
             traj_info = "no trajectory"
-        return (
-            f"MotionGenResult({self.status}, "
-            f"{traj_info}, "
-            f"{self.solve_time_ms:.1f}ms)"
-        )
+        return f"MotionGenResult({self.status}, {traj_info}, {self.solve_time_ms:.1f}ms)"

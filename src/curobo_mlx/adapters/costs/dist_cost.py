@@ -6,8 +6,6 @@ Penalises distance of the current joint configuration from a reference
 Upstream reference: curobo/rollout/cost/dist_cost.py (517 lines).
 """
 
-from typing import Optional
-
 import mlx.core as mx
 
 from curobo_mlx.adapters.costs.cost_base import CostBase, CostConfig
@@ -37,7 +35,7 @@ class DistCost(CostBase):
         if self.vec_weight is not None:
             diff = diff * self.vec_weight
 
-        cost = self.weight * mx.sum(diff ** 2, axis=-1)
+        cost = self.weight * mx.sum(diff**2, axis=-1)
 
         # Apply terminal mask if configured and trajectory-shaped
         if self.terminal and cost.ndim == 2:

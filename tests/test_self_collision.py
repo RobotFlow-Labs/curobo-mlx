@@ -16,24 +16,23 @@ import mlx.core as mx
 import numpy as np
 import pytest
 
+from curobo_mlx.curobolib.geom import get_self_collision_distance
 from curobo_mlx.kernels.self_collision import (
     _extract_active_pairs,
     self_collision_distance,
     self_collision_distance_dense,
     self_collision_distance_sparse,
 )
-from curobo_mlx.curobolib.geom import get_self_collision_distance
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_spheres(centers, radii):
     """Build robot_spheres [B, S, 4] from centers [B, S, 3] and radii [B, S]."""
     return mx.concatenate(
-        [mx.array(centers, dtype=mx.float32),
-         mx.array(radii, dtype=mx.float32)[..., None]],
+        [mx.array(centers, dtype=mx.float32), mx.array(radii, dtype=mx.float32)[..., None]],
         axis=-1,
     )
 
@@ -48,6 +47,7 @@ def _all_pairs_matrix(S):
 # ---------------------------------------------------------------------------
 # Basic correctness
 # ---------------------------------------------------------------------------
+
 
 class TestNoCollision:
     """Spheres far apart should produce zero cost."""
@@ -263,10 +263,13 @@ class TestBatchIndependence:
 
     def test_batch_different_configs(self):
         # Batch 0: collision (pen=1.0), Batch 1: no collision
-        centers = np.array([
-            [[0, 0, 0], [1, 0, 0]],   # distance=1, r_sum=2, pen=1
-            [[0, 0, 0], [10, 0, 0]],  # distance=10, r_sum=2, pen=-8 => 0
-        ], dtype=np.float32)
+        centers = np.array(
+            [
+                [[0, 0, 0], [1, 0, 0]],  # distance=1, r_sum=2, pen=1
+                [[0, 0, 0], [10, 0, 0]],  # distance=10, r_sum=2, pen=-8 => 0
+            ],
+            dtype=np.float32,
+        )
         radii = np.array([[1.0, 1.0], [1.0, 1.0]])
         spheres = _make_spheres(centers, radii)
         offsets = mx.zeros((2,))
@@ -350,10 +353,13 @@ class TestSparseVsDense:
         np.testing.assert_allclose(np.array(grad_d), np.array(grad_s), atol=1e-4)
 
     def test_batch_with_mixed_collision(self):
-        centers = np.array([
-            [[0, 0, 0], [1, 0, 0], [5, 0, 0]],
-            [[0, 0, 0], [0.3, 0, 0], [0, 0.3, 0]],
-        ], dtype=np.float32)
+        centers = np.array(
+            [
+                [[0, 0, 0], [1, 0, 0], [5, 0, 0]],
+                [[0, 0, 0], [0.3, 0, 0], [0, 0.3, 0]],
+            ],
+            dtype=np.float32,
+        )
         radii = np.array([[1.0, 1.0, 1.0], [0.5, 0.5, 0.5]])
         spheres = _make_spheres(centers, radii)
         offsets = mx.zeros((3,))
@@ -368,9 +374,12 @@ class TestSparseVsDense:
         np.testing.assert_allclose(np.array(grad_d), np.array(grad_s), atol=1e-4)
 
     def test_partial_mask(self):
-        centers = np.array([
-            [[0, 0, 0], [0.5, 0, 0], [0, 0.5, 0], [10, 0, 0]],
-        ], dtype=np.float32)
+        centers = np.array(
+            [
+                [[0, 0, 0], [0.5, 0, 0], [0, 0.5, 0], [10, 0, 0]],
+            ],
+            dtype=np.float32,
+        )
         radii = np.array([[1.0, 1.0, 1.0, 1.0]])
         spheres = _make_spheres(centers, radii)
         offsets = mx.array([0.1, 0.0, 0.2, 0.0])

@@ -12,25 +12,20 @@ Tests cover:
 
 import mlx.core as mx
 import numpy as np
-import pytest
 
 from curobo_mlx.kernels.kinematics import (
     FIXED,
-    X_PRISM,
     X_ROT,
-    Y_PRISM,
-    Y_ROT,
     Z_PRISM,
     Z_ROT,
-    forward_kinematics_batched,
     fk_position_loss,
+    forward_kinematics_batched,
     rotation_matrix_x,
     rotation_matrix_y,
     rotation_matrix_z,
-    translation_matrix,
     transform_spheres,
+    translation_matrix,
 )
-from curobo_mlx.kernels.quaternion import quaternion_to_rotation_matrix
 
 
 def _check_close(mlx_result, expected, atol=1e-5, rtol=1e-5):
@@ -235,9 +230,7 @@ def _make_simple_2link_robot():
     link_map = mx.array([0, 0, 1], dtype=mx.int32)  # parent indices
     joint_map = mx.array([0, 0, 1], dtype=mx.int32)  # joint index per link
     joint_map_type = mx.array([FIXED, Z_ROT, Z_ROT], dtype=mx.int32)
-    joint_offset_map = mx.array(
-        [[1.0, 0.0], [1.0, 0.0], [1.0, 0.0]], dtype=mx.float32
-    )
+    joint_offset_map = mx.array([[1.0, 0.0], [1.0, 0.0], [1.0, 0.0]], dtype=mx.float32)
     store_link_map = mx.array([2], dtype=mx.int32)  # store end-effector only
 
     # Simple sphere at origin of link 2
@@ -262,8 +255,14 @@ class TestForwardKinematics:
     def test_2link_zero_angles(self):
         """At q=[0,0], end-effector should be at (2, 0, 0)."""
         (
-            ft, link_map, joint_map, jtype, joffset,
-            store_map, sphere_map, spheres,
+            ft,
+            link_map,
+            joint_map,
+            jtype,
+            joffset,
+            store_map,
+            sphere_map,
+            spheres,
         ) = _make_simple_2link_robot()
 
         q = mx.array([[0.0, 0.0]])
@@ -314,8 +313,14 @@ class TestForwardKinematics:
             = (1, 0, 0) + (0, 1, 0) = (1, 1, 0)
         """
         (
-            ft, link_map, joint_map, jtype, joffset,
-            store_map, sphere_map, spheres,
+            ft,
+            link_map,
+            joint_map,
+            jtype,
+            joffset,
+            store_map,
+            sphere_map,
+            spheres,
         ) = _make_simple_2link_robot()
 
         q = mx.array([[np.pi / 2, 0.0]])
@@ -329,8 +334,14 @@ class TestForwardKinematics:
     def test_2link_sphere_at_ee(self):
         """Sphere at link 2 origin should match link 2 position."""
         (
-            ft, link_map, joint_map, jtype, joffset,
-            store_map, sphere_map, spheres,
+            ft,
+            link_map,
+            joint_map,
+            jtype,
+            joffset,
+            store_map,
+            sphere_map,
+            spheres,
         ) = _make_simple_2link_robot()
 
         q = mx.array([[0.3, -0.5]])
@@ -347,8 +358,14 @@ class TestForwardKinematics:
     def test_identity_angles_chain(self):
         """With zero angles, FK should produce cumulative fixed transforms."""
         (
-            ft, link_map, joint_map, jtype, joffset,
-            store_map, sphere_map, spheres,
+            ft,
+            link_map,
+            joint_map,
+            jtype,
+            joffset,
+            store_map,
+            sphere_map,
+            spheres,
         ) = _make_simple_2link_robot()
 
         q = mx.array([[0.0, 0.0]])
@@ -368,20 +385,40 @@ class TestBatchConsistency:
     def test_same_input_same_output(self):
         """Identical inputs in a batch should produce identical outputs."""
         (
-            ft, link_map, joint_map, jtype, joffset,
-            store_map, sphere_map, spheres,
+            ft,
+            link_map,
+            joint_map,
+            jtype,
+            joffset,
+            store_map,
+            sphere_map,
+            spheres,
         ) = _make_simple_2link_robot()
 
         q_single = mx.array([[0.5, -0.3]])
         q_batch = mx.concatenate([q_single] * 4, axis=0)  # [4, 2]
 
         pos_s, quat_s, sph_s = forward_kinematics_batched(
-            q_single, ft, link_map, joint_map, jtype, joffset,
-            store_map, sphere_map, spheres,
+            q_single,
+            ft,
+            link_map,
+            joint_map,
+            jtype,
+            joffset,
+            store_map,
+            sphere_map,
+            spheres,
         )
         pos_b, quat_b, sph_b = forward_kinematics_batched(
-            q_batch, ft, link_map, joint_map, jtype, joffset,
-            store_map, sphere_map, spheres,
+            q_batch,
+            ft,
+            link_map,
+            joint_map,
+            jtype,
+            joffset,
+            store_map,
+            sphere_map,
+            spheres,
         )
         mx.eval(pos_s, quat_s, sph_s, pos_b, quat_b, sph_b)
 
@@ -392,20 +429,40 @@ class TestBatchConsistency:
     def test_different_batch_sizes(self):
         """Result for first element should be same regardless of batch padding."""
         (
-            ft, link_map, joint_map, jtype, joffset,
-            store_map, sphere_map, spheres,
+            ft,
+            link_map,
+            joint_map,
+            jtype,
+            joffset,
+            store_map,
+            sphere_map,
+            spheres,
         ) = _make_simple_2link_robot()
 
         q1 = mx.array([[1.0, -0.5]])
         q2 = mx.concatenate([q1, mx.zeros((3, 2))], axis=0)  # [4, 2]
 
         pos1, _, _ = forward_kinematics_batched(
-            q1, ft, link_map, joint_map, jtype, joffset,
-            store_map, sphere_map, spheres,
+            q1,
+            ft,
+            link_map,
+            joint_map,
+            jtype,
+            joffset,
+            store_map,
+            sphere_map,
+            spheres,
         )
         pos2, _, _ = forward_kinematics_batched(
-            q2, ft, link_map, joint_map, jtype, joffset,
-            store_map, sphere_map, spheres,
+            q2,
+            ft,
+            link_map,
+            joint_map,
+            jtype,
+            joffset,
+            store_map,
+            sphere_map,
+            spheres,
         )
         mx.eval(pos1, pos2)
 
@@ -455,8 +512,14 @@ class TestGradientComputation:
         We use eps=1e-2 for robust finite differences in float32.
         """
         (
-            ft, link_map, joint_map, jtype, joffset,
-            store_map, sphere_map, spheres,
+            ft,
+            link_map,
+            joint_map,
+            jtype,
+            joffset,
+            store_map,
+            sphere_map,
+            spheres,
         ) = _make_simple_2link_robot()
 
         q0 = mx.array([[0.3, -0.2]])
@@ -464,8 +527,16 @@ class TestGradientComputation:
         # MLX auto-diff gradient
         grad_fn = mx.grad(
             lambda q: fk_position_loss(
-                q, ft, link_map, joint_map, jtype, joffset,
-                store_map, sphere_map, spheres, ee_idx=0,
+                q,
+                ft,
+                link_map,
+                joint_map,
+                jtype,
+                joffset,
+                store_map,
+                sphere_map,
+                spheres,
+                ee_idx=0,
             )
         )
         grad_mlx = grad_fn(q0)
@@ -483,14 +554,30 @@ class TestGradientComputation:
 
             loss_plus = float(
                 fk_position_loss(
-                    mx.array(q_plus), ft, link_map, joint_map, jtype, joffset,
-                    store_map, sphere_map, spheres, ee_idx=0,
+                    mx.array(q_plus),
+                    ft,
+                    link_map,
+                    joint_map,
+                    jtype,
+                    joffset,
+                    store_map,
+                    sphere_map,
+                    spheres,
+                    ee_idx=0,
                 )
             )
             loss_minus = float(
                 fk_position_loss(
-                    mx.array(q_minus), ft, link_map, joint_map, jtype, joffset,
-                    store_map, sphere_map, spheres, ee_idx=0,
+                    mx.array(q_minus),
+                    ft,
+                    link_map,
+                    joint_map,
+                    jtype,
+                    joffset,
+                    store_map,
+                    sphere_map,
+                    spheres,
+                    ee_idx=0,
                 )
             )
             grad_fd[0, i] = (loss_plus - loss_minus) / (2 * eps)
@@ -508,9 +595,7 @@ class TestGradientComputation:
         # Same sign where non-zero
         if np.any(nonzero_fd):
             signs_match = np.sign(grad_mlx_np[nonzero_fd]) == np.sign(grad_fd[nonzero_fd])
-            assert np.all(signs_match), (
-                f"Gradient sign mismatch: MLX={grad_mlx_np}, FD={grad_fd}"
-            )
+            assert np.all(signs_match), f"Gradient sign mismatch: MLX={grad_mlx_np}, FD={grad_fd}"
 
 
 class TestFKQuaternionOutput:
@@ -523,7 +608,15 @@ class TestFKQuaternionOutput:
         )
         q = mx.zeros((1, 2))
         _, link_quat, _ = forward_kinematics_batched(
-            q, ft, link_map, joint_map, jtype, joffset, store_map, sph_map, sph,
+            q,
+            ft,
+            link_map,
+            joint_map,
+            jtype,
+            joffset,
+            store_map,
+            sph_map,
+            sph,
         )
         mx.eval(link_quat)
         for i in range(link_quat.shape[1]):
@@ -540,8 +633,16 @@ class TestFKQuaternionOutput:
         mx.random.seed(77)
         q = mx.random.uniform(-1.0, 1.0, (5, 2))
         _, link_quat, _ = forward_kinematics_batched(
-            q, ft, link_map, joint_map, jtype, joffset, store_map, sph_map, sph,
+            q,
+            ft,
+            link_map,
+            joint_map,
+            jtype,
+            joffset,
+            store_map,
+            sph_map,
+            sph,
         )
         mx.eval(link_quat)
-        norms = np.array(mx.sqrt(mx.sum(link_quat ** 2, axis=-1)))
+        norms = np.array(mx.sqrt(mx.sum(link_quat**2, axis=-1)))
         np.testing.assert_allclose(norms, 1.0, atol=1e-4)

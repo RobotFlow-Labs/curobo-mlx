@@ -7,7 +7,6 @@ import math
 
 import mlx.core as mx
 import numpy as np
-import pytest
 
 from curobo_mlx.kernels.quaternion import (
     quaternion_conjugate,
@@ -30,6 +29,7 @@ def _check_close(actual, expected, atol=1e-5):
 # ---------------------------------------------------------------------------
 # quaternion_multiply
 # ---------------------------------------------------------------------------
+
 
 class TestQuaternionMultiply:
     def test_identity_left(self):
@@ -93,6 +93,7 @@ class TestQuaternionMultiply:
 # quaternion_conjugate / inverse
 # ---------------------------------------------------------------------------
 
+
 class TestQuaternionConjugate:
     def test_conjugate_negates_xyz(self):
         q = mx.array([[0.5, 0.1, 0.2, 0.3]])
@@ -123,11 +124,12 @@ class TestQuaternionInverse:
 # quaternion_normalize
 # ---------------------------------------------------------------------------
 
+
 class TestQuaternionNormalize:
     def test_unit_quaternion_idempotent(self):
         q = mx.array([[0.5, 0.5, 0.5, 0.5]])  # already unit
         result = quaternion_normalize(q)
-        norm = float(mx.sqrt(mx.sum(result ** 2, axis=-1)))
+        norm = float(mx.sqrt(mx.sum(result**2, axis=-1)))
         assert abs(norm - 1.0) < 1e-6
 
     def test_non_unit_normalized(self):
@@ -138,13 +140,14 @@ class TestQuaternionNormalize:
     def test_batch_normalize(self):
         q = mx.array([[2.0, 0, 0, 0], [0, 3.0, 0, 0]])
         result = quaternion_normalize(q)
-        norms = mx.sqrt(mx.sum(result ** 2, axis=-1))
+        norms = mx.sqrt(mx.sum(result**2, axis=-1))
         _check_close(norms, [1.0, 1.0])
 
 
 # ---------------------------------------------------------------------------
 # quaternion_to_rotation_matrix / rotation_matrix_to_quaternion
 # ---------------------------------------------------------------------------
+
 
 class TestQuaternionRotationRoundTrip:
     def test_identity_quaternion_to_matrix(self):
@@ -189,10 +192,10 @@ class TestQuaternionRotationRoundTrip:
     def test_all_shepperd_branches(self):
         """Exercise all 4 branches of Shepperd's method."""
         quaternions = [
-            [1.0, 0, 0, 0],        # trace > 0 (identity)
-            [0.0, 1, 0, 0],        # R[0,0] largest diagonal
-            [0.0, 0, 1, 0],        # R[1,1] largest diagonal
-            [0.0, 0, 0, 1],        # R[2,2] largest diagonal
+            [1.0, 0, 0, 0],  # trace > 0 (identity)
+            [0.0, 1, 0, 0],  # R[0,0] largest diagonal
+            [0.0, 0, 1, 0],  # R[1,1] largest diagonal
+            [0.0, 0, 0, 1],  # R[2,2] largest diagonal
         ]
         for q_vals in quaternions:
             q_in = mx.array([q_vals])
@@ -205,6 +208,7 @@ class TestQuaternionRotationRoundTrip:
 # ---------------------------------------------------------------------------
 # quaternion_geodesic_distance
 # ---------------------------------------------------------------------------
+
 
 class TestQuaternionGeodesicDistance:
     def test_identical_quaternions_zero_distance(self):
@@ -242,12 +246,13 @@ class TestQuaternionGeodesicDistance:
         d = quaternion_geodesic_distance(q1, q2)
         assert d.shape == (2,)
         assert float(d[0]) < 1e-6  # same rotation
-        assert float(d[1]) > 3.0   # 180 deg
+        assert float(d[1]) > 3.0  # 180 deg
 
 
 # ---------------------------------------------------------------------------
 # quaternion_error
 # ---------------------------------------------------------------------------
+
 
 class TestQuaternionError:
     def test_identity_when_equal(self):

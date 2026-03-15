@@ -8,12 +8,12 @@ import mlx.core as mx
 
 
 def update_best(
-    best_cost: mx.array,         # [N]
-    best_q: mx.array,            # [N, D]
-    best_iteration: mx.array,    # [N] int16
-    current_iteration: mx.array, # [1] int16 (unused, kept for API compat)
-    cost: mx.array,              # [N]
-    q: mx.array,                 # [N, D]
+    best_cost: mx.array,  # [N]
+    best_q: mx.array,  # [N, D]
+    best_iteration: mx.array,  # [N] int16
+    current_iteration: mx.array,  # [1] int16 (unused, kept for API compat)
+    cost: mx.array,  # [N]
+    q: mx.array,  # [N, D]
     d_opt: int,
     iteration: int,
     delta_threshold: float = 1e-5,

@@ -4,7 +4,7 @@ Chains multiple optimizers (e.g., MPPI for exploration, L-BFGS for
 refinement) to produce high-quality trajectory solutions.
 """
 
-from typing import Callable, List
+from typing import Callable
 
 import mlx.core as mx
 

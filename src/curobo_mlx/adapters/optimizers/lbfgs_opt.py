@@ -5,7 +5,7 @@ a complete gradient-based optimizer. Uses mx.value_and_grad for
 automatic differentiation of the cost function.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Callable, List, Optional
 
 import mlx.core as mx
@@ -113,25 +113,28 @@ class MLXLBFGSOpt:
             if mx.max(per_cost).item() < self.cost_convergence:
                 # Update best before breaking
                 best_cost, best_q, best_iteration = update_best(
-                    best_cost, best_q, best_iteration,
+                    best_cost,
+                    best_q,
+                    best_iteration,
                     mx.zeros((1,), dtype=mx.int16),
-                    per_cost, q, V, iteration,
+                    per_cost,
+                    q,
+                    V,
+                    iteration,
                 )
                 mx.eval(best_cost, best_q)
                 break
 
             # L-BFGS step: compute search direction
-            step_vec, rho_buffer, y_buffer, s_buffer, x_prev, grad_prev = (
-                lbfgs_step(
-                    mx.zeros_like(q),  # step_vec placeholder
-                    rho_buffer,
-                    y_buffer,
-                    s_buffer,
-                    q,
-                    grad_q,
-                    x_prev,
-                    grad_prev,
-                )
+            step_vec, rho_buffer, y_buffer, s_buffer, x_prev, grad_prev = lbfgs_step(
+                mx.zeros_like(q),  # step_vec placeholder
+                rho_buffer,
+                y_buffer,
+                s_buffer,
+                q,
+                grad_q,
+                x_prev,
+                grad_prev,
             )
             mx.eval(step_vec, rho_buffer, y_buffer, s_buffer)
 
@@ -175,9 +178,14 @@ class MLXLBFGSOpt:
 
             # Track best solution across iterations
             best_cost, best_q, best_iteration = update_best(
-                best_cost, best_q, best_iteration,
+                best_cost,
+                best_q,
+                best_iteration,
                 mx.zeros((1,), dtype=mx.int16),
-                best_c_ls, q, V, iteration,
+                best_c_ls,
+                q,
+                V,
+                iteration,
             )
             mx.eval(best_cost, best_q)
 

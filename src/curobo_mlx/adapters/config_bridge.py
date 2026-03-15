@@ -9,9 +9,8 @@ URDF parsing, then converts everything to MLX arrays.
 
 from __future__ import annotations
 
-import copy
 import os
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional
 
 import mlx.core as mx
 import numpy as np
@@ -24,7 +23,6 @@ from curobo_mlx.util.config_loader import (
     load_robot_config_yaml,
     load_yaml,
 )
-
 
 # ---------------------------------------------------------------------------
 # Joint type enum (mirrors upstream curobo.cuda_robot_model.types.JointType)
@@ -382,7 +380,7 @@ def load_mlx_robot_config(robot_name: str) -> MLXRobotModelConfig:
     n_dofs = 0
 
     for i, lname in enumerate(chain_link_names):
-        is_base = (i == 0)
+        is_base = i == 0
         lp = _get_link_params(robot, parent_map, lname, base=is_base, extra_links=extra_links)
         bodies.append(lp)
         name_to_idx[lname] = i
@@ -540,7 +538,14 @@ def load_mlx_robot_config(robot_name: str) -> MLXRobotModelConfig:
             sp_indices = [i for i, li in enumerate(sphere_link_indices) if li == l_idx]
             if not sp_indices:
                 continue
-            c1 = sc_buffer.get(cln, -(collision_sphere_buffer if isinstance(collision_sphere_buffer, (int, float)) else 0.0))
+            c1 = sc_buffer.get(
+                cln,
+                -(
+                    collision_sphere_buffer
+                    if isinstance(collision_sphere_buffer, (int, float))
+                    else 0.0
+                ),
+            )
             for si in sp_indices:
                 sc_offsets[si] = c1
 
@@ -556,7 +561,14 @@ def load_mlx_robot_config(robot_name: str) -> MLXRobotModelConfig:
                 ]
                 if not other_sp_indices:
                     continue
-                c2 = sc_buffer.get(other_cln, -(collision_sphere_buffer if isinstance(collision_sphere_buffer, (int, float)) else 0.0))
+                c2 = sc_buffer.get(
+                    other_cln,
+                    -(
+                        collision_sphere_buffer
+                        if isinstance(collision_sphere_buffer, (int, float))
+                        else 0.0
+                    ),
+                )
                 for si1 in sp_indices:
                     r1 = robot_spheres_np[si1, 3]
                     for si2 in other_sp_indices:
@@ -627,19 +639,13 @@ def _compute_locked_transform(body: _LinkParams, locked_value: float) -> np.ndar
         jmat[2, 3] = angle
     elif effective == 3:  # X_ROT
         c, s = np.cos(angle), np.sin(angle)
-        jmat = np.array(
-            [[1, 0, 0, 0], [0, c, -s, 0], [0, s, c, 0], [0, 0, 0, 1]], dtype=np.float32
-        )
+        jmat = np.array([[1, 0, 0, 0], [0, c, -s, 0], [0, s, c, 0], [0, 0, 0, 1]], dtype=np.float32)
     elif effective == 4:  # Y_ROT
         c, s = np.cos(angle), np.sin(angle)
-        jmat = np.array(
-            [[c, 0, s, 0], [0, 1, 0, 0], [-s, 0, c, 0], [0, 0, 0, 1]], dtype=np.float32
-        )
+        jmat = np.array([[c, 0, s, 0], [0, 1, 0, 0], [-s, 0, c, 0], [0, 0, 0, 1]], dtype=np.float32)
     elif effective == 5:  # Z_ROT
         c, s = np.cos(angle), np.sin(angle)
-        jmat = np.array(
-            [[c, -s, 0, 0], [s, c, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=np.float32
-        )
+        jmat = np.array([[c, -s, 0, 0], [s, c, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=np.float32)
     else:
         return ft
 

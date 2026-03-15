@@ -10,15 +10,12 @@ from ..kernels.collision import (
     sphere_obb_distance_vectorized,
     swept_sphere_obb_distance,
 )
-from ..kernels.self_collision import self_collision_distance
 from ..kernels.pose_distance import (
     BATCH_GOAL,
-    BATCH_GOALSET,
-    GOALSET,
-    SINGLE_GOAL,
     backward_pose_distance,
     pose_distance,
 )
+from ..kernels.self_collision import self_collision_distance
 
 
 def get_pose_distance(
@@ -104,7 +101,9 @@ def get_pose_distance(
         goal_quat = goal_quat.reshape(-1, 4)
 
     # Determine project_distance flag
-    proj_dist = bool(project_distance.tolist()[0]) if project_distance.ndim > 0 else bool(project_distance)
+    proj_dist = (
+        bool(project_distance.tolist()[0]) if project_distance.ndim > 0 else bool(project_distance)
+    )
 
     # Call the MLX kernel
     distance, p_dist, r_dist, p_vec, q_vec, best_idx = pose_distance(

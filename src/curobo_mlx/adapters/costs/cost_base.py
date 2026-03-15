@@ -1,6 +1,6 @@
 """Base class for cuRobo-MLX cost functions."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 import mlx.core as mx
@@ -11,9 +11,9 @@ class CostConfig:
     """Configuration shared by all cost functions."""
 
     weight: float = 1.0
-    terminal: bool = False        # applied only at the last horizon timestep
+    terminal: bool = False  # applied only at the last horizon timestep
     vec_weight: Optional[mx.array] = None  # per-DOF weights [D] or [6]
-    threshold: float = 0.0        # convergence threshold (cost below this is zeroed)
+    threshold: float = 0.0  # convergence threshold (cost below this is zeroed)
 
 
 class CostBase:
@@ -49,9 +49,7 @@ class CostBase:
         mask = mx.zeros((1, H))
         mask = mask.at[:, -1].add(1.0)  # 1 at last timestep
         # MLX doesn't have .at yet — use concatenation
-        mask = mx.concatenate(
-            [mx.zeros((1, H - 1)), mx.ones((1, 1))], axis=1
-        )
+        mask = mx.concatenate([mx.zeros((1, H - 1)), mx.ones((1, 1))], axis=1)
         return cost * mask
 
     def forward(self, *args, **kwargs) -> mx.array:

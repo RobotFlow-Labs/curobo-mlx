@@ -58,9 +58,7 @@ def _make_simple_config():
     link_map = np.array([0, 0, 1], dtype=np.int32)  # parent indices
     joint_map = np.array([-1, 0, 1], dtype=np.int32)  # joint indices
     joint_map_type = np.array([-1, 5, 5], dtype=np.int32)  # Z_ROT = 5
-    joint_offset_map = np.array(
-        [[1.0, 0.0], [1.0, 0.0], [1.0, 0.0]], dtype=np.float32
-    )
+    joint_offset_map = np.array([[1.0, 0.0], [1.0, 0.0], [1.0, 0.0]], dtype=np.float32)
     store_link_map = np.array([2], dtype=np.int32)  # store EE (link2)
 
     return MLXRobotModelConfig(
@@ -138,13 +136,11 @@ class TestIKSolverSimple:
 
     def test_solve_returns_ik_result(self):
         """solve() returns an IKResult with correct field types."""
-        from curobo_mlx.api.ik_solver import IKSolver
         from curobo_mlx.adapters.types import MLXPose
+        from curobo_mlx.api.ik_solver import IKSolver
 
         config = _make_simple_config()
-        solver = IKSolver(
-            config, num_seeds=8, num_mppi_iters=3, num_lbfgs_iters=3
-        )
+        solver = IKSolver(config, num_seeds=8, num_mppi_iters=3, num_lbfgs_iters=3)
         mx.random.seed(42)
         goal = MLXPose(
             position=mx.array([1.0, 0.0, 0.0]),
@@ -163,13 +159,11 @@ class TestIKSolverSimple:
 
     def test_user_seeds_respected(self):
         """When user provides seeds, the solver uses them."""
-        from curobo_mlx.api.ik_solver import IKSolver
         from curobo_mlx.adapters.types import MLXPose
+        from curobo_mlx.api.ik_solver import IKSolver
 
         config = _make_simple_config()
-        solver = IKSolver(
-            config, num_seeds=4, num_mppi_iters=2, num_lbfgs_iters=2
-        )
+        solver = IKSolver(config, num_seeds=4, num_mppi_iters=2, num_lbfgs_iters=2)
         mx.random.seed(42)
 
         # Provide specific seeds
@@ -183,13 +177,11 @@ class TestIKSolverSimple:
 
     def test_solution_within_joint_limits(self):
         """Solution is clamped to joint limits."""
-        from curobo_mlx.api.ik_solver import IKSolver
         from curobo_mlx.adapters.types import MLXPose
+        from curobo_mlx.api.ik_solver import IKSolver
 
         config = _make_simple_config()
-        solver = IKSolver(
-            config, num_seeds=16, num_mppi_iters=5, num_lbfgs_iters=5
-        )
+        solver = IKSolver(config, num_seeds=16, num_mppi_iters=5, num_lbfgs_iters=5)
         mx.random.seed(42)
 
         goal = MLXPose(
@@ -205,8 +197,8 @@ class TestIKSolverSimple:
 
     def test_unreachable_pose_fails(self):
         """A pose far outside the workspace should fail."""
-        from curobo_mlx.api.ik_solver import IKSolver
         from curobo_mlx.adapters.types import MLXPose
+        from curobo_mlx.api.ik_solver import IKSolver
 
         config = _make_simple_config()
         solver = IKSolver(
@@ -251,8 +243,8 @@ class TestIKSolverFranka:
 
     def test_solve_reachable_pose(self):
         """IK finds a solution for a known reachable pose."""
-        from curobo_mlx.api.ik_solver import IKSolver
         from curobo_mlx.adapters.types import MLXPose
+        from curobo_mlx.api.ik_solver import IKSolver
 
         solver = IKSolver.from_robot_name(
             "franka",
@@ -281,8 +273,8 @@ class TestIKSolverFranka:
 
     def test_batch_seeds(self):
         """Multiple seeds are processed correctly."""
-        from curobo_mlx.api.ik_solver import IKSolver
         from curobo_mlx.adapters.types import MLXPose
+        from curobo_mlx.api.ik_solver import IKSolver
 
         solver = IKSolver.from_robot_name(
             "franka", num_seeds=4, num_mppi_iters=3, num_lbfgs_iters=3

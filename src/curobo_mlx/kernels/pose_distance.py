@@ -70,19 +70,34 @@ def _compute_pose_distance_vector(
         dx, dy, dz = diff[..., 0], diff[..., 1], diff[..., 2]
 
         error_px = (
-            qw * qw * dx + 2 * qy * qw * dz - 2 * qz * qw * dy
-            + qx * qx * dx + 2 * qy * qx * dy + 2 * qz * qx * dz
-            - qz * qz * dx - qy * qy * dx
+            qw * qw * dx
+            + 2 * qy * qw * dz
+            - 2 * qz * qw * dy
+            + qx * qx * dx
+            + 2 * qy * qx * dy
+            + 2 * qz * qx * dz
+            - qz * qz * dx
+            - qy * qy * dx
         )
         error_py = (
-            2 * qx * qy * dx + qy * qy * dy + 2 * qz * qy * dz
-            + 2 * qw * qz * dx - qz * qz * dy + qw * qw * dy
-            - 2 * qx * qw * dz - qx * qx * dy
+            2 * qx * qy * dx
+            + qy * qy * dy
+            + 2 * qz * qy * dz
+            + 2 * qw * qz * dx
+            - qz * qz * dy
+            + qw * qw * dy
+            - 2 * qx * qw * dz
+            - qx * qx * dy
         )
         error_pz = (
-            2 * qx * qz * dx + 2 * qy * qz * dy + qz * qz * dz
-            - 2 * qw * qy * dx - qy * qy * dz + 2 * qw * qx * dy
-            - qx * qx * dz + qw * qw * dz
+            2 * qx * qz * dx
+            + 2 * qy * qz * dy
+            + qz * qz * dz
+            - 2 * qw * qy * dx
+            - qy * qy * dz
+            + 2 * qw * qx * dy
+            - qx * qx * dz
+            + qw * qw * dz
         )
         error_position = mx.stack([error_px, error_py, error_pz], axis=-1)
 
@@ -115,19 +130,34 @@ def _compute_pose_distance_vector(
             has_rotation = (mx.abs(fx) > 0) | (mx.abs(fy) > 0) | (mx.abs(fz) > 0)
 
             rx = (
-                fw * fw * ex + 2 * fy * fw * ez - 2 * fz * fw * ey
-                + fx * fx * ex + 2 * fy * fx * ey + 2 * fz * fx * ez
-                - fz * fz * ex - fy * fy * ex
+                fw * fw * ex
+                + 2 * fy * fw * ez
+                - 2 * fz * fw * ey
+                + fx * fx * ex
+                + 2 * fy * fx * ey
+                + 2 * fz * fx * ez
+                - fz * fz * ex
+                - fy * fy * ex
             )
             ry = (
-                2 * fx * fy * ex + fy * fy * ey + 2 * fz * fy * ez
-                + 2 * fw * fz * ex - fz * fz * ey + fw * fw * ey
-                - 2 * fx * fw * ez - fx * fx * ey
+                2 * fx * fy * ex
+                + fy * fy * ey
+                + 2 * fz * fy * ez
+                + 2 * fw * fz * ex
+                - fz * fz * ey
+                + fw * fw * ey
+                - 2 * fx * fw * ez
+                - fx * fx * ey
             )
             rz = (
-                2 * fx * fz * ex + 2 * fy * fz * ey + fz * fz * ez
-                - 2 * fw * fy * ex - fy * fy * ez + 2 * fw * fx * ey
-                - fx * fx * ez + fw * fw * ez
+                2 * fx * fz * ex
+                + 2 * fy * fz * ey
+                + fz * fz * ez
+                - 2 * fw * fy * ex
+                - fy * fy * ez
+                + 2 * fw * fx * ey
+                - fx * fx * ez
+                + fw * fw * ez
             )
 
             result_x = mx.where(has_rotation, rx, ex)
@@ -238,8 +268,8 @@ def pose_distance(
         # Get goal for this k
         if mode == SINGLE_GOAL or mode == GOALSET:
             # All batches share the same goals
-            g_pos = goal_pos[k:k+1]  # [1, 3]
-            g_quat = goal_quat[k:k+1]  # [1, 4]
+            g_pos = goal_pos[k : k + 1]  # [1, 3]
+            g_quat = goal_quat[k : k + 1]  # [1, 4]
             # Broadcast to [B, 1, 3] and [B, 1, 4]
             g_pos = mx.broadcast_to(g_pos[None], (B, 1, 3))
             g_quat = mx.broadcast_to(g_quat[None], (B, 1, 4))
@@ -273,19 +303,31 @@ def pose_distance(
         p_conv_sq = vec_convergence[1] * vec_convergence[1]
 
         # Guard sqrt: ensure non-negative input (floating point can produce tiny negatives)
-        r_dist = mx.where(r_dist_sq > r_conv_sq, mx.sqrt(mx.maximum(r_dist_sq, mx.array(0.0))), mx.zeros_like(r_dist_sq))
-        p_dist = mx.where(p_dist_sq > p_conv_sq, mx.sqrt(mx.maximum(p_dist_sq, mx.array(0.0))), mx.zeros_like(p_dist_sq))
+        r_dist = mx.where(
+            r_dist_sq > r_conv_sq,
+            mx.sqrt(mx.maximum(r_dist_sq, mx.array(0.0))),
+            mx.zeros_like(r_dist_sq),
+        )
+        p_dist = mx.where(
+            p_dist_sq > p_conv_sq,
+            mx.sqrt(mx.maximum(p_dist_sq, mx.array(0.0))),
+            mx.zeros_like(p_dist_sq),
+        )
 
         # Compute weighted distance
         if use_metric:
-            dist = (
-                mx.where(r_dist > 0, rotation_weight * mx.log2(mx.cosh(r_alpha * r_dist)), mx.zeros_like(r_dist))
-                + mx.where(p_dist > 0, position_weight * mx.log2(mx.cosh(p_alpha * p_dist)), mx.zeros_like(p_dist))
+            dist = mx.where(
+                r_dist > 0,
+                rotation_weight * mx.log2(mx.cosh(r_alpha * r_dist)),
+                mx.zeros_like(r_dist),
+            ) + mx.where(
+                p_dist > 0,
+                position_weight * mx.log2(mx.cosh(p_alpha * p_dist)),
+                mx.zeros_like(p_dist),
             )
         else:
-            dist = (
-                mx.where(r_dist > 0, rotation_weight * r_dist, mx.zeros_like(r_dist))
-                + mx.where(p_dist > 0, position_weight * p_dist, mx.zeros_like(p_dist))
+            dist = mx.where(r_dist > 0, rotation_weight * r_dist, mx.zeros_like(r_dist)) + mx.where(
+                p_dist > 0, position_weight * p_dist, mx.zeros_like(p_dist)
             )
 
         # Update best
@@ -391,8 +433,6 @@ def backward_pose_distance(
     # Only xyz components of quaternion gradient (w component stays 0)
     grad_quat = mx.zeros_like(grad_q_vec)
     grad_quat_xyz = grad_q_vec[..., 1:] * q_scale[..., None]  # [B, 3]
-    grad_quat = mx.concatenate(
-        [mx.zeros((*grad_quat_xyz.shape[:-1], 1)), grad_quat_xyz], axis=-1
-    )
+    grad_quat = mx.concatenate([mx.zeros((*grad_quat_xyz.shape[:-1], 1)), grad_quat_xyz], axis=-1)
 
     return grad_pos, grad_quat

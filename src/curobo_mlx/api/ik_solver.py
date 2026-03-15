@@ -54,7 +54,11 @@ class IKSolver:
             from curobo_mlx import list_robots
 
             available = list_robots()
-            avail_str = ", ".join(available) if available else "(none found -- is the submodule initialized?)"
+            avail_str = (
+                ", ".join(available)
+                if available
+                else "(none found -- is the submodule initialized?)"
+            )
             raise FileNotFoundError(
                 f"Robot '{robot_name}' not found. "
                 f"Available robots: {avail_str}. "
@@ -153,9 +157,7 @@ class IKSolver:
         """
         low = self.config.joint_limits_low  # [D]
         high = self.config.joint_limits_high  # [D]
-        return mx.random.uniform(
-            low, high, shape=(num_seeds, self.dof)
-        )
+        return mx.random.uniform(low, high, shape=(num_seeds, self.dof))
 
     # ------------------------------------------------------------------
     # Solve
@@ -212,7 +214,7 @@ class IKSolver:
             return cost_fn(q)
 
         mppi = MLXMPPI(mppi_cfg, mppi_rollout)
-        init_action = seed_config[:, None, :]  # [N, 1, D]
+        seed_config[:, None, :]  # [N, 1, D]
         # MPPI expects [n_envs, H, D]; we pass [1, 1, D] as mean, it samples around it
         # But we want diversity from seeds, so use the mean of seeds
         mean_seed = mx.mean(seed_config, axis=0, keepdims=True)[:, None, :]  # [1, 1, D]

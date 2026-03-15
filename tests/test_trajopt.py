@@ -47,9 +47,7 @@ def _make_simple_config():
         link_map=mx.array(np.array([0, 0, 1], dtype=np.int32)),
         joint_map=mx.array(np.array([-1, 0, 1], dtype=np.int32)),
         joint_map_type=mx.array(np.array([-1, 5, 5], dtype=np.int32)),
-        joint_offset_map=mx.array(
-            np.array([[1.0, 0.0], [1.0, 0.0], [1.0, 0.0]], dtype=np.float32)
-        ),
+        joint_offset_map=mx.array(np.array([[1.0, 0.0], [1.0, 0.0], [1.0, 0.0]], dtype=np.float32)),
         store_link_map=mx.array(np.array([2], dtype=np.int32)),
         link_sphere_map=mx.array(np.array([1], dtype=np.int32)),
         robot_spheres=mx.array(np.array([[0.0, 0.0, 0.0, 0.01]], dtype=np.float32)),
@@ -79,8 +77,8 @@ class TestTrajOptSimple:
 
     def test_output_shape(self):
         """Trajectory has shape [H, D]."""
-        from curobo_mlx.api.trajopt import TrajOptSolver
         from curobo_mlx.adapters.types import MLXPose
+        from curobo_mlx.api.trajopt import TrajOptSolver
 
         config = _make_simple_config()
         solver = TrajOptSolver(
@@ -102,8 +100,8 @@ class TestTrajOptSimple:
 
     def test_trajectory_within_limits(self):
         """All trajectory waypoints respect joint limits."""
-        from curobo_mlx.api.trajopt import TrajOptSolver
         from curobo_mlx.adapters.types import MLXPose
+        from curobo_mlx.api.trajopt import TrajOptSolver
 
         config = _make_simple_config()
         solver = TrajOptSolver(
@@ -129,8 +127,8 @@ class TestTrajOptSimple:
 
     def test_cost_is_finite(self):
         """Cost value is finite."""
-        from curobo_mlx.api.trajopt import TrajOptSolver
         from curobo_mlx.adapters.types import MLXPose
+        from curobo_mlx.api.trajopt import TrajOptSolver
 
         config = _make_simple_config()
         solver = TrajOptSolver(
@@ -168,8 +166,8 @@ class TestTrajOptSimple:
 
     def test_with_goal_config(self):
         """TrajOpt uses goal_config for interpolation seeds."""
-        from curobo_mlx.api.trajopt import TrajOptSolver
         from curobo_mlx.adapters.types import MLXPose
+        from curobo_mlx.api.trajopt import TrajOptSolver
 
         config = _make_simple_config()
         solver = TrajOptSolver(
@@ -214,8 +212,8 @@ class TestTrajOptFranka:
 
     def test_franka_trajectory_shape(self):
         """Franka trajectory has correct shape."""
-        from curobo_mlx.api.trajopt import TrajOptSolver
         from curobo_mlx.adapters.types import MLXPose
+        from curobo_mlx.api.trajopt import TrajOptSolver
 
         solver = TrajOptSolver.from_robot_name(
             "franka",

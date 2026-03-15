@@ -1,7 +1,7 @@
 """Tests for the MPPI optimizer."""
 
-import pytest
 import mlx.core as mx
+import pytest
 
 from curobo_mlx.adapters.optimizers.mppi import MLXMPPI, MPPIConfig
 
@@ -118,8 +118,13 @@ class TestMPPITemperature:
 
         # High temperature (more exploration)
         config_high = MPPIConfig(
-            horizon=4, d_action=3, n_particles=256,
-            n_iters=5, gamma=10.0, noise_sigma=1.0, seed=77,
+            horizon=4,
+            d_action=3,
+            n_particles=256,
+            n_iters=5,
+            gamma=10.0,
+            noise_sigma=1.0,
+            seed=77,
         )
         opt_high = MLXMPPI(config_high, quadratic_cost)
         _, cost_high = opt_high.optimize(mx.array(initial))
@@ -128,8 +133,13 @@ class TestMPPITemperature:
         # Low temperature (more exploitation)
         mx.random.seed(77)
         config_low = MPPIConfig(
-            horizon=4, d_action=3, n_particles=256,
-            n_iters=5, gamma=0.01, noise_sigma=1.0, seed=77,
+            horizon=4,
+            d_action=3,
+            n_particles=256,
+            n_iters=5,
+            gamma=0.01,
+            noise_sigma=1.0,
+            seed=77,
         )
         opt_low = MLXMPPI(config_low, quadratic_cost)
         _, cost_low = opt_low.optimize(mx.array(initial))
@@ -170,8 +180,13 @@ class TestMPPIDeterminism:
     def test_same_seed_same_result(self):
         """Same seed should produce identical results."""
         config = MPPIConfig(
-            horizon=4, d_action=3, n_particles=64,
-            n_iters=3, gamma=0.5, noise_sigma=0.5, seed=42,
+            horizon=4,
+            d_action=3,
+            n_particles=64,
+            n_iters=3,
+            gamma=0.5,
+            noise_sigma=0.5,
+            seed=42,
         )
         initial = mx.ones((1, 4, 3)) * 2.0
 
@@ -197,8 +212,13 @@ class TestMPPIShapes:
         """Output shapes should match input H and D."""
         mx.random.seed(0)
         config = MPPIConfig(
-            horizon=H, d_action=D, n_particles=32,
-            n_iters=1, gamma=0.5, noise_sigma=0.5, seed=0,
+            horizon=H,
+            d_action=D,
+            n_particles=32,
+            n_iters=1,
+            gamma=0.5,
+            noise_sigma=0.5,
+            seed=0,
         )
         opt = MLXMPPI(config, quadratic_cost)
         initial = mx.zeros((1, H, D))
@@ -212,8 +232,13 @@ class TestMPPIShapes:
         """2D input [H, D] should be promoted to [1, H, D]."""
         mx.random.seed(0)
         config = MPPIConfig(
-            horizon=4, d_action=3, n_particles=32,
-            n_iters=1, gamma=0.5, noise_sigma=0.5, seed=0,
+            horizon=4,
+            d_action=3,
+            n_particles=32,
+            n_iters=1,
+            gamma=0.5,
+            noise_sigma=0.5,
+            seed=0,
         )
         opt = MLXMPPI(config, quadratic_cost)
         initial = mx.zeros((4, 3))  # 2D
@@ -230,9 +255,14 @@ class TestMPPISampleMode:
         """sample_mode='best' should return the lowest-cost sample."""
         mx.random.seed(10)
         config = MPPIConfig(
-            horizon=4, d_action=3, n_particles=128,
-            n_iters=3, gamma=0.5, noise_sigma=1.0,
-            seed=10, sample_mode="best",
+            horizon=4,
+            d_action=3,
+            n_particles=128,
+            n_iters=3,
+            gamma=0.5,
+            noise_sigma=1.0,
+            seed=10,
+            sample_mode="best",
         )
         opt = MLXMPPI(config, quadratic_cost)
         initial = mx.ones((1, 4, 3)) * 3.0

@@ -39,4 +39,4 @@ class StopCost(CostBase):
         if self.vec_weight is not None:
             terminal_vel = terminal_vel * self.vec_weight
 
-        return self.weight * mx.sum(terminal_vel ** 2, axis=-1)  # [B]
+        return self.weight * mx.sum(terminal_vel**2, axis=-1)  # [B]

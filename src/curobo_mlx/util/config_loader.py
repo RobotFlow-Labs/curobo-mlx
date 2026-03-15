@@ -7,16 +7,16 @@ to ``mx.array``.  Also provides path utilities for locating upstream content
 
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import mlx.core as mx
 import numpy as np
 import yaml
 
-
 # ---------------------------------------------------------------------------
 # Path utilities
 # ---------------------------------------------------------------------------
+
 
 def _project_root() -> Path:
     """Return the cuRobo-MLX project root directory.
@@ -33,14 +33,7 @@ def get_upstream_content_path() -> str:
     Raises ``FileNotFoundError`` if the upstream submodule has not been
     initialised.
     """
-    content = (
-        _project_root()
-        / "repositories"
-        / "curobo-upstream"
-        / "src"
-        / "curobo"
-        / "content"
-    )
+    content = _project_root() / "repositories" / "curobo-upstream" / "src" / "curobo" / "content"
     if not content.exists():
         raise FileNotFoundError(
             f"Upstream cuRobo submodule not found at {content}.\n"
@@ -75,6 +68,7 @@ def get_assets_path() -> str:
 # YAML helpers
 # ---------------------------------------------------------------------------
 
+
 def load_yaml(file_path: str) -> dict:
     """Load and parse a YAML file, returning a plain dict."""
     with open(file_path, "r") as fh:
@@ -88,8 +82,7 @@ def _resolve_config_file(config_dir: str, name: str) -> str:
         if os.path.exists(candidate):
             return candidate
     raise FileNotFoundError(
-        f"Config '{name}' not found in {config_dir}. "
-        f"Available: {_list_configs(config_dir)}"
+        f"Config '{name}' not found in {config_dir}. Available: {_list_configs(config_dir)}"
     )
 
 
@@ -108,6 +101,7 @@ def _list_configs(config_dir: str) -> List[str]:
 # ---------------------------------------------------------------------------
 # Config loaders
 # ---------------------------------------------------------------------------
+
 
 def load_robot_config_yaml(robot_name: str) -> dict:
     """Load a robot config YAML by name (e.g. ``'franka'``, ``'ur10e'``).
@@ -134,6 +128,7 @@ def load_task_config_yaml(task_name: str) -> dict:
 # Listing helpers
 # ---------------------------------------------------------------------------
 
+
 def list_available_robots() -> List[str]:
     """Return a sorted list of available robot configuration names."""
     return _list_configs(get_robot_configs_path())
@@ -152,6 +147,7 @@ def list_available_tasks() -> List[str]:
 # ---------------------------------------------------------------------------
 # Numpy / MLX recursive conversion
 # ---------------------------------------------------------------------------
+
 
 def numpy_to_mlx_recursive(
     data: Any,

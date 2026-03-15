@@ -9,7 +9,6 @@ from typing import List, Optional
 
 import mlx.core as mx
 
-
 # ---------------------------------------------------------------------------
 # Pose
 # ---------------------------------------------------------------------------
@@ -28,7 +27,6 @@ class MLXPose:
 
     def __repr__(self) -> str:
         p = self.position
-        q = self.quaternion
         if p.ndim == 1:
             return f"MLXPose(pos=[{float(p[0]):.4f}, {float(p[1]):.4f}, {float(p[2]):.4f}])"
         return f"MLXPose(shape={p.shape})"
@@ -110,6 +108,7 @@ class MLXRobotModelConfig:
             f"{self.num_links} links, "
             f"{self.num_spheres} spheres)"
         )
+
     joint_names: List[str]
     link_names: List[str]  # stored link names
     ee_link_name: str

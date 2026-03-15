@@ -55,12 +55,27 @@ def rotation_matrix_x(angle: mx.array) -> mx.array:
     ones = mx.ones_like(angle)
 
     # Build flat [B, 16] then reshape to [B, 4, 4]
-    mat = mx.stack([
-        ones, zeros, zeros, zeros,
-        zeros, cos_a, -sin_a, zeros,
-        zeros, sin_a, cos_a, zeros,
-        zeros, zeros, zeros, ones,
-    ], axis=-1)
+    mat = mx.stack(
+        [
+            ones,
+            zeros,
+            zeros,
+            zeros,
+            zeros,
+            cos_a,
+            -sin_a,
+            zeros,
+            zeros,
+            sin_a,
+            cos_a,
+            zeros,
+            zeros,
+            zeros,
+            zeros,
+            ones,
+        ],
+        axis=-1,
+    )
     return mat.reshape(angle.shape[0], 4, 4)
 
 
@@ -72,12 +87,27 @@ def rotation_matrix_y(angle: mx.array) -> mx.array:
     zeros = mx.zeros_like(angle)
     ones = mx.ones_like(angle)
 
-    mat = mx.stack([
-        cos_a, zeros, sin_a, zeros,
-        zeros, ones, zeros, zeros,
-        -sin_a, zeros, cos_a, zeros,
-        zeros, zeros, zeros, ones,
-    ], axis=-1)
+    mat = mx.stack(
+        [
+            cos_a,
+            zeros,
+            sin_a,
+            zeros,
+            zeros,
+            ones,
+            zeros,
+            zeros,
+            -sin_a,
+            zeros,
+            cos_a,
+            zeros,
+            zeros,
+            zeros,
+            zeros,
+            ones,
+        ],
+        axis=-1,
+    )
     return mat.reshape(angle.shape[0], 4, 4)
 
 
@@ -89,12 +119,27 @@ def rotation_matrix_z(angle: mx.array) -> mx.array:
     zeros = mx.zeros_like(angle)
     ones = mx.ones_like(angle)
 
-    mat = mx.stack([
-        cos_a, -sin_a, zeros, zeros,
-        sin_a, cos_a, zeros, zeros,
-        zeros, zeros, ones, zeros,
-        zeros, zeros, zeros, ones,
-    ], axis=-1)
+    mat = mx.stack(
+        [
+            cos_a,
+            -sin_a,
+            zeros,
+            zeros,
+            sin_a,
+            cos_a,
+            zeros,
+            zeros,
+            zeros,
+            zeros,
+            ones,
+            zeros,
+            zeros,
+            zeros,
+            zeros,
+            ones,
+        ],
+        axis=-1,
+    )
     return mat.reshape(angle.shape[0], 4, 4)
 
 
@@ -230,20 +275,18 @@ def forward_kinematics_batched(
     joint_map_np = joint_map.tolist()
     joint_type_np = joint_map_type.tolist()
 
-    # Accumulate transforms for each link: cumul_mats[l] is [B, 4, 4]
+    # Accumulate transforms for each link: cumul_mats[li] is [B, 4, 4]
     cumul_mats = [None] * n_links
 
     # Link 0 (root): just the fixed transform, no joint
-    cumul_mats[0] = mx.broadcast_to(
-        fixed_transforms[0:1], (B, 4, 4)
-    )
+    cumul_mats[0] = mx.broadcast_to(fixed_transforms[0:1], (B, 4, 4))
 
-    for l in range(1, n_links):
-        parent_idx = int(link_map_np[l])
-        j_type = int(joint_type_np[l])
-        j_idx = int(joint_map_np[l])
+    for li in range(1, n_links):
+        parent_idx = int(link_map_np[li])
+        j_type = int(joint_type_np[li])
+        j_idx = int(joint_map_np[li])
 
-        ft = fixed_transforms[l]  # [4, 4]
+        ft = fixed_transforms[li]  # [4, 4]
 
         if j_type == FIXED:
             # Just multiply parent by fixed transform
@@ -253,8 +296,8 @@ def forward_kinematics_batched(
             angle = q[:, j_idx]  # [B]
 
             # Apply joint offset
-            offset_scale = float(joint_offset_map[l, 0])
-            offset_bias = float(joint_offset_map[l, 1])
+            offset_scale = float(joint_offset_map[li, 0])
+            offset_bias = float(joint_offset_map[li, 1])
             angle = offset_scale * angle + offset_bias
 
             # Remap negative-axis types to positive-axis equivalents
@@ -281,12 +324,10 @@ def forward_kinematics_batched(
                 raise ValueError(f"Unknown effective joint type: {effective_type}")
 
             # local_mat = fixed_transform @ joint_action
-            local_mat = mx.matmul(
-                mx.broadcast_to(ft[None], (B, 4, 4)), joint_mat
-            )
+            local_mat = mx.matmul(mx.broadcast_to(ft[None], (B, 4, 4)), joint_mat)
 
         # cumul[l] = cumul[parent] @ local_mat
-        cumul_mats[l] = mx.matmul(cumul_mats[parent_idx], local_mat)
+        cumul_mats[li] = mx.matmul(cumul_mats[parent_idx], local_mat)
 
     # Stack all cumul_mats: [B, n_links, 4, 4]
     all_cumul = mx.stack(cumul_mats, axis=1)
@@ -303,7 +344,6 @@ def forward_kinematics_batched(
 
     # Extract rotation matrices and convert to quaternions
     link_rot = stored_transforms[:, :, :3, :3]  # [B, n_store, 3, 3]
-    orig_shape = link_rot.shape
     link_rot_flat = link_rot.reshape(-1, 3, 3)
     link_quat_flat = rotation_matrix_to_quaternion(link_rot_flat)
     link_quat = link_quat_flat.reshape(B, n_store, 4)  # [B, n_store, 4] wxyz
@@ -371,9 +411,7 @@ def _compiled_sphere_transform(
 
     # Take xyz and append original radius
     world_xyz = transformed[:, :, :3]  # [B, S, 3]
-    radii = mx.broadcast_to(
-        robot_spheres[None, :, 3:4], (B, n_spheres, 1)
-    )  # [B, S, 1]
+    radii = mx.broadcast_to(robot_spheres[None, :, 3:4], (B, n_spheres, 1))  # [B, S, 1]
 
     return mx.concatenate([world_xyz, radii], axis=-1)  # [B, S, 4]
 

@@ -7,17 +7,17 @@ import mlx.core as mx
 
 
 def wolfe_line_search(
-    best_x: mx.array,        # [B, L2] output: best iterate
-    best_c: mx.array,        # [B] output: best cost
-    best_grad: mx.array,     # [B, L2] output: best gradient
-    g_x: mx.array,           # [B, L1, L2] gradients at candidates
-    x_set: mx.array,         # [B, L1, L2] candidate iterates
-    step_vec: mx.array,      # [B, L2] search direction
-    c: mx.array,             # [B, L1] cost at candidates
-    alpha_list: mx.array,    # [L1] step sizes (shared across batch)
-    c_idx: mx.array,         # [B] index offset into flattened x_set/g_x
-    c_1: float = 1e-4,       # Armijo constant
-    c_2: float = 0.9,        # Curvature constant
+    best_x: mx.array,  # [B, L2] output: best iterate
+    best_c: mx.array,  # [B] output: best cost
+    best_grad: mx.array,  # [B, L2] output: best gradient
+    g_x: mx.array,  # [B, L1, L2] gradients at candidates
+    x_set: mx.array,  # [B, L1, L2] candidate iterates
+    step_vec: mx.array,  # [B, L2] search direction
+    c: mx.array,  # [B, L1] cost at candidates
+    alpha_list: mx.array,  # [L1] step sizes (shared across batch)
+    c_idx: mx.array,  # [B] index offset into flattened x_set/g_x
+    c_1: float = 1e-4,  # Armijo constant
+    c_2: float = 0.9,  # Curvature constant
     strong_wolfe: bool = True,
     approx_wolfe: bool = False,
 ) -> tuple[mx.array, mx.array, mx.array]:
@@ -64,7 +64,7 @@ def wolfe_line_search(
     step_success_w1 = mx.where(wolfe_1, alpha_list[None, :] + 0.1, mx.zeros([B, L1]))
 
     # Find best index per batch
-    m_id = mx.argmax(step_success, axis=-1)    # [B]
+    m_id = mx.argmax(step_success, axis=-1)  # [B]
     m1_id = mx.argmax(step_success_w1, axis=-1)  # [B]
 
     if not approx_wolfe:
@@ -83,11 +83,11 @@ def wolfe_line_search(
     # which means x_set is flattened as [B*L1, L2]
     L2 = x_set.shape[-1]
     x_set_flat = x_set.reshape(-1, L2)  # [B*L1, L2]
-    g_x_flat = g_x.reshape(-1, L2)      # [B*L1, L2]
-    c_flat = c.reshape(-1)              # [B*L1]
+    g_x_flat = g_x.reshape(-1, L2)  # [B*L1, L2]
+    c_flat = c.reshape(-1)  # [B*L1]
 
-    new_best_x = x_set_flat[idx]        # [B, L2]
-    new_best_grad = g_x_flat[idx]       # [B, L2]
-    new_best_c = c_flat[idx]            # [B]
+    new_best_x = x_set_flat[idx]  # [B, L2]
+    new_best_grad = g_x_flat[idx]  # [B, L2]
+    new_best_c = c_flat[idx]  # [B]
 
     return new_best_x, new_best_c, new_best_grad

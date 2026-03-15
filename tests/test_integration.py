@@ -45,9 +45,7 @@ def _make_simple_config():
         link_map=mx.array(np.array([0, 0, 1], dtype=np.int32)),
         joint_map=mx.array(np.array([-1, 0, 1], dtype=np.int32)),
         joint_map_type=mx.array(np.array([-1, 5, 5], dtype=np.int32)),
-        joint_offset_map=mx.array(
-            np.array([[1.0, 0.0], [1.0, 0.0], [1.0, 0.0]], dtype=np.float32)
-        ),
+        joint_offset_map=mx.array(np.array([[1.0, 0.0], [1.0, 0.0], [1.0, 0.0]], dtype=np.float32)),
         store_link_map=mx.array(np.array([2], dtype=np.int32)),
         link_sphere_map=mx.array(np.array([1], dtype=np.int32)),
         robot_spheres=mx.array(np.array([[0.0, 0.0, 0.0, 0.01]], dtype=np.float32)),
@@ -77,12 +75,9 @@ class TestTopLevelImports:
 
     def test_api_module_imports(self):
         from curobo_mlx.api import (
-            IKSolver,
-            TrajOptSolver,
-            MotionGen,
             IKResult,
-            TrajOptResult,
             MotionGenResult,
+            TrajOptResult,
         )
 
         assert IKResult is not None

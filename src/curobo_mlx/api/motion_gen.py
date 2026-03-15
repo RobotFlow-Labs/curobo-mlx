@@ -53,7 +53,11 @@ class MotionGen:
             from curobo_mlx import list_robots
 
             available = list_robots()
-            avail_str = ", ".join(available) if available else "(none found -- is the submodule initialized?)"
+            avail_str = (
+                ", ".join(available)
+                if available
+                else "(none found -- is the submodule initialized?)"
+            )
             raise FileNotFoundError(
                 f"Robot '{robot_name}' not found. "
                 f"Available robots: {avail_str}. "

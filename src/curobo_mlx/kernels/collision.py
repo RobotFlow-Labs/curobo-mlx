@@ -17,7 +17,6 @@ Algorithm per (batch, horizon, sphere):
 """
 
 import mlx.core as mx
-import numpy as np
 
 # ---------------------------------------------------------------------------
 # Numerical stability constants
@@ -51,17 +50,38 @@ def _quat_rotate(q: mx.array, v: mx.array) -> mx.array:
     vz = v[..., 2:3]
 
     # Rotation matrix from quaternion applied to vector
-    rx = (qw * qw * vx + 2 * qy * qw * vz - 2 * qz * qw * vy
-          + qx * qx * vx + 2 * qy * qx * vy + 2 * qz * qx * vz
-          - qz * qz * vx - qy * qy * vx)
+    rx = (
+        qw * qw * vx
+        + 2 * qy * qw * vz
+        - 2 * qz * qw * vy
+        + qx * qx * vx
+        + 2 * qy * qx * vy
+        + 2 * qz * qx * vz
+        - qz * qz * vx
+        - qy * qy * vx
+    )
 
-    ry = (2 * qx * qy * vx + qy * qy * vy + 2 * qz * qy * vz
-          + 2 * qw * qz * vx - qz * qz * vy + qw * qw * vy
-          - 2 * qx * qw * vz - qx * qx * vy)
+    ry = (
+        2 * qx * qy * vx
+        + qy * qy * vy
+        + 2 * qz * qy * vz
+        + 2 * qw * qz * vx
+        - qz * qz * vy
+        + qw * qw * vy
+        - 2 * qx * qw * vz
+        - qx * qx * vy
+    )
 
-    rz = (2 * qx * qz * vx + 2 * qy * qz * vy + qz * qz * vz
-          - 2 * qw * qy * vx - qy * qy * vz + 2 * qw * qx * vy
-          - qx * qx * vz + qw * qw * vz)
+    rz = (
+        2 * qx * qz * vx
+        + 2 * qy * qz * vy
+        + qz * qz * vz
+        - 2 * qw * qy * vx
+        - qy * qy * vz
+        + 2 * qw * qx * vy
+        - qx * qx * vz
+        + qw * qw * vz
+    )
 
     return mx.concatenate([rx, ry, rz], axis=-1)
 
@@ -82,9 +102,7 @@ def _inv_quat_rotate(q: mx.array, v: mx.array) -> mx.array:
     return _quat_rotate(q_conj, v)
 
 
-def _transform_sphere_quat(
-    obb_pos: mx.array, obb_quat: mx.array, sphere_pos: mx.array
-) -> mx.array:
+def _transform_sphere_quat(obb_pos: mx.array, obb_quat: mx.array, sphere_pos: mx.array) -> mx.array:
     """Transform sphere position to OBB local frame.
 
     Upstream: p_local = q * (p_world - obb_pos) * q_inv
@@ -156,7 +174,7 @@ def _compute_closest_point(
     # Create mask per axis: [..., 3]
     axis_indices = mx.arange(3)  # [3]
     # Broadcast min_axis [...] to [..., 3]
-    axis_match = (min_axis[..., None] == axis_indices)  # [..., 3] bool
+    axis_match = min_axis[..., None] == axis_indices  # [..., 3] bool
     inside_match = inside[..., None] & axis_match  # [..., 3]
 
     # Snap to face where inside_match, keep sphere_local otherwise
@@ -296,7 +314,7 @@ def sphere_obb_distance(
 
     # Get sphere data
     sph_pos = sphere_position[..., :3]  # [B, H, S, 3]
-    sph_rad = sphere_position[..., 3]   # [B, H, S]
+    sph_rad = sphere_position[..., 3]  # [B, H, S]
 
     # Mask out disabled spheres (radius < 0)
     valid_sphere = sph_rad >= 0.0  # [B, H, S]
@@ -316,9 +334,17 @@ def sphere_obb_distance(
     env_idx_list = env_query_idx.tolist()
     if len(set(env_idx_list)) == 1:
         return sphere_obb_distance_vectorized(
-            sphere_position, obb_mat, obb_bounds, obb_enable,
-            n_env_obb, env_query_idx, max_nobs,
-            activation_distance, weight, transform_back, sum_collisions,
+            sphere_position,
+            obb_mat,
+            obb_bounds,
+            obb_enable,
+            n_env_obb,
+            env_query_idx,
+            max_nobs,
+            activation_distance,
+            weight,
+            transform_back,
+            sum_collisions,
         )
 
     # Multi-environment path: vectorize over obstacles within each batch element
@@ -343,7 +369,7 @@ def sphere_obb_distance(
         obs_bounds = obb_bounds[start_idx : start_idx + nboxes]  # [O, 4]
         obs_enable_env = obb_enable[start_idx : start_idx + nboxes]  # [O]
 
-        obs_pos = obs_mat[:, :3]   # [O, 3]
+        obs_pos = obs_mat[:, :3]  # [O, 3]
         obs_quat = obs_mat[:, 3:7]  # [O, 4]
         obs_half = obs_bounds[:, :3] / 2.0  # [O, 3]
 
@@ -351,13 +377,13 @@ def sphere_obb_distance(
 
         # Gather batch elements for this env: [Bg, H, S, 3]
         bi = batch_indices
-        b_sph_pos = sph_pos[bi]      # [Bg, H, S, 3]
+        b_sph_pos = sph_pos[bi]  # [Bg, H, S, 3]
         b_sph_rad = inflated_rad[bi]  # [Bg, H, S]
-        b_valid = valid_sphere[bi]    # [Bg, H, S]
-        Bg = len(bi)
+        b_valid = valid_sphere[bi]  # [Bg, H, S]
+        len(bi)
 
         # Vectorize over obstacles: broadcast [Bg, H, S, 1, 3] with [1, 1, 1, O, 3]
-        sph_5d = b_sph_pos[:, :, :, None, :]        # [Bg, H, S, 1, 3]
+        sph_5d = b_sph_pos[:, :, :, None, :]  # [Bg, H, S, 1, 3]
         obs_pos_5d = obs_pos[None, None, None, :, :]  # [1, 1, 1, O, 3]
         obs_quat_5d = obs_quat[None, None, None, :, :]
         obs_half_5d = obs_half[None, None, None, :, :]
@@ -391,9 +417,10 @@ def sphere_obb_distance(
             b_total_grad = mx.sum(world_grad, axis=3)  # [Bg, H, S, 3]
         else:
             b_total_dist = mx.max(cost, axis=3)
-            O = nboxes
+            n_obs = nboxes
             max_idx = mx.argmax(cost, axis=3)
-            one_hot = (mx.arange(O)[None, None, None, :] == max_idx[..., None]).astype(mx.float32)
+            obs_range = mx.arange(n_obs)[None, None, None, :]
+            one_hot = (obs_range == max_idx[..., None]).astype(mx.float32)
             b_total_grad = mx.sum(world_grad * one_hot[..., None], axis=3)
 
         b_cost = weight * mx.where(b_valid, b_total_dist, 0.0)
@@ -409,9 +436,7 @@ def sphere_obb_distance(
     sparsity_idx = (out_distance != 0).astype(mx.uint8)
 
     # Pad gradients to 4D
-    out_grad = mx.concatenate(
-        [all_grad, mx.zeros((B, H, S, 1))], axis=-1
-    )
+    out_grad = mx.concatenate([all_grad, mx.zeros((B, H, S, 1))], axis=-1)
 
     mx.eval(out_distance, out_grad, sparsity_idx)
     return out_distance, out_grad, sparsity_idx
@@ -446,7 +471,7 @@ def sphere_obb_distance_vectorized(
     eta = activation_distance
 
     sph_pos = sphere_position[..., :3]  # [B, H, S, 3]
-    sph_rad = sphere_position[..., 3]   # [B, H, S]
+    sph_rad = sphere_position[..., 3]  # [B, H, S]
     valid_sphere = sph_rad >= 0.0
     inflated_rad = sph_rad + eta
 
@@ -465,8 +490,8 @@ def sphere_obb_distance_vectorized(
     obs_bounds = obb_bounds[start_idx : start_idx + nboxes]
     obs_enable = obb_enable[start_idx : start_idx + nboxes]
 
-    obs_pos = obs_mat[:, :3]       # [O, 3]
-    obs_quat = obs_mat[:, 3:7]    # [O, 4]
+    obs_pos = obs_mat[:, :3]  # [O, 3]
+    obs_quat = obs_mat[:, 3:7]  # [O, 4]
     obs_half = obs_bounds[:, :3] / 2.0  # [O, 3]
 
     # Enable mask: [O]
@@ -525,8 +550,9 @@ def sphere_obb_distance_vectorized(
         max_idx = mx.argmax(cost, axis=3)  # [B, H, S]
         total_dist = mx.max(cost, axis=3)  # [B, H, S]
         # Gather gradient for the max obstacle
-        O = nboxes
-        one_hot = (mx.arange(O)[None, None, None, :] == max_idx[..., None]).astype(mx.float32)
+        n_obs = nboxes
+        obs_range = mx.arange(n_obs)[None, None, None, :]
+        one_hot = (obs_range == max_idx[..., None]).astype(mx.float32)
         total_grad = mx.sum(world_grad * one_hot[..., None], axis=3)  # [B, H, S, 3]
 
     out_distance = weight * mx.where(valid_sphere, total_dist, 0.0)
@@ -603,9 +629,9 @@ def swept_sphere_obb_distance(
         obs_quat = obs_mat[:, 3:7]
         obs_half = obs_bounds[:, :3] / 2.0
 
-        b_sph_pos = sph_pos[b]       # [H, S, 3]
-        b_sph_rad = inflated_rad[b]   # [H, S]
-        b_valid = valid_sphere[b]     # [H, S]
+        b_sph_pos = sph_pos[b]  # [H, S, 3]
+        b_sph_rad = inflated_rad[b]  # [H, S]
+        b_valid = valid_sphere[b]  # [H, S]
 
         b_dist = mx.zeros((H, S))
         b_grad = mx.zeros((H, S, 3))
@@ -659,9 +685,7 @@ def swept_sphere_obb_distance(
                     if not mx.any(process_mask).item():
                         continue
 
-                    delta, signed_dist, inside = _compute_closest_point(
-                        o_half[None, :], pos
-                    )
+                    delta, signed_dist, inside = _compute_closest_point(o_half[None, :], pos)
                     sph_dist = signed_dist + b_sph_rad[h]
                     gv, c = _scale_eta_metric(delta, sph_dist, eta)
 
@@ -678,9 +702,7 @@ def swept_sphere_obb_distance(
 
             # Transform gradient back and accumulate
             if transform_back:
-                world_grad = _inv_quat_rotate(
-                    o_quat[None, None, :], o_sum_grad
-                )
+                world_grad = _inv_quat_rotate(o_quat[None, None, :], o_sum_grad)
             else:
                 world_grad = o_sum_grad
 
@@ -705,9 +727,7 @@ def swept_sphere_obb_distance(
         out_grad = out_grad.at[b].add(weight * b_grad)
 
     sparsity_idx = (out_distance != 0).astype(mx.uint8)
-    out_grad_4d = mx.concatenate(
-        [out_grad, mx.zeros((B, H, S, 1))], axis=-1
-    )
+    out_grad_4d = mx.concatenate([out_grad, mx.zeros((B, H, S, 1))], axis=-1)
 
     mx.eval(out_distance, out_grad_4d, sparsity_idx)
     return out_distance, out_grad_4d, sparsity_idx
@@ -743,15 +763,15 @@ def sphere_obb_signed_distance(
         closest_point: [B, H, S, 3] closest point on nearest OBB in world.
     """
     B, H, S, _ = sphere_pos.shape
-    O = obb_pos.shape[0]
+    num_obs = obb_pos.shape[0]
 
     if obb_enable is None:
-        obb_enable = mx.ones((O,), dtype=mx.uint8)
+        obb_enable = mx.ones((num_obs,), dtype=mx.uint8)
 
     min_dist = mx.full((B, H, S), 1e6)
     closest_pt = mx.zeros((B, H, S, 3))
 
-    for o in range(O):
+    for o in range(num_obs):
         if not obb_enable[o].item():
             continue
 
@@ -789,9 +809,10 @@ def sphere_obb_signed_distance(
         min_dist = mx.where(better, signed, min_dist)
 
         # Transform closest point back to world (inverse of inv_transform)
-        world_pt = _inv_quat_rotate(
-            obb_quat[o][None, None, None, :], clamped
-        ) - obb_pos[o][None, None, None, :]
+        world_pt = (
+            _inv_quat_rotate(obb_quat[o][None, None, None, :], clamped)
+            - obb_pos[o][None, None, None, :]
+        )
         # Actually: the inverse of transform_sphere_quat is:
         # p_world = inv_quat_rotate(quat, p_local - pos)
         world_pt = _inv_quat_rotate(

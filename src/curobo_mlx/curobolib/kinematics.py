@@ -61,7 +61,7 @@ def get_cuda_kinematics(
     """
     # Determine n_links from link_map
     n_links = link_map.shape[0]
-    n_store = store_link_map.shape[0]
+    store_link_map.shape[0]
 
     # Reshape fixed_transform if flattened
     if fixed_transform.ndim == 1:

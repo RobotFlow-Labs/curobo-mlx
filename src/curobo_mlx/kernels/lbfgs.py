@@ -8,14 +8,14 @@ import mlx.core as mx
 
 
 def lbfgs_step(
-    step_vec: mx.array,      # [B, V] output buffer (ignored, new one returned)
-    rho_buffer: mx.array,    # [M, B] inverse curvature
-    y_buffer: mx.array,      # [M, B, V] gradient differences
-    s_buffer: mx.array,      # [M, B, V] step differences
-    q: mx.array,             # [B, V] current iterate
-    grad_q: mx.array,        # [B, V] gradient at q
-    x_0: mx.array,           # [B, V] previous iterate
-    grad_0: mx.array,        # [B, V] gradient at x_0
+    step_vec: mx.array,  # [B, V] output buffer (ignored, new one returned)
+    rho_buffer: mx.array,  # [M, B] inverse curvature
+    y_buffer: mx.array,  # [M, B, V] gradient differences
+    s_buffer: mx.array,  # [M, B, V] step differences
+    q: mx.array,  # [B, V] current iterate
+    grad_q: mx.array,  # [B, V] gradient at q
+    x_0: mx.array,  # [B, V] previous iterate
+    grad_0: mx.array,  # [B, V] gradient at x_0
     epsilon: float = 0.1,
     stable_mode: bool = False,
 ) -> tuple[mx.array, mx.array, mx.array, mx.array, mx.array, mx.array]:
@@ -40,11 +40,11 @@ def lbfgs_step(
     Returns: (step_vec, rho_buffer, y_buffer, s_buffer, x_0, grad_0)
     """
     M = y_buffer.shape[0]
-    B = y_buffer.shape[1]
+    y_buffer.shape[1]
 
     # Compute gradient and step differences
     y = grad_q - grad_0  # [B, V]
-    s = q - x_0           # [B, V]
+    s = q - x_0  # [B, V]
 
     # Compute numerator = y . s per batch element
     numerator = mx.sum(y * s, axis=-1)  # [B]
@@ -87,7 +87,7 @@ def lbfgs_step(
     for i in range(M - 1, -1, -1):
         # dot product s[i] . r per batch
         si_dot_r = mx.sum(s_buffer[i] * r, axis=-1)  # [B]
-        alpha_i = rho_buffer[i] * si_dot_r            # [B]
+        alpha_i = rho_buffer[i] * si_dot_r  # [B]
         alpha_list.append(alpha_i)
         # r -= alpha_i * y[i]
         r = r - alpha_i[:, None] * y_buffer[i]
@@ -100,15 +100,15 @@ def lbfgs_step(
     denominator = mx.sum(y * y, axis=-1)  # [B]
 
     if stable_mode:
-        var1 = mx.where(denominator == 0.0,
-                        mx.ones_like(denominator) * epsilon,
-                        numerator / denominator)
+        var1 = mx.where(
+            denominator == 0.0, mx.ones_like(denominator) * epsilon, numerator / denominator
+        )
     else:
         # Guard against division by zero when y.y == 0 (gradient unchanged)
         safe_denom = mx.where(denominator == 0.0, mx.ones_like(denominator), denominator)
-        var1 = mx.where(denominator == 0.0,
-                        mx.ones_like(denominator) * epsilon,
-                        numerator / safe_denom)
+        var1 = mx.where(
+            denominator == 0.0, mx.ones_like(denominator) * epsilon, numerator / safe_denom
+        )
 
     gamma = mx.maximum(var1, mx.zeros_like(var1))  # relu
     r = gamma[:, None] * r
@@ -116,7 +116,7 @@ def lbfgs_step(
     # Second loop: forward from i = 0 to M-1
     for i in range(M):
         yi_dot_r = mx.sum(y_buffer[i] * r, axis=-1)  # [B]
-        beta = rho_buffer[i] * yi_dot_r               # [B]
+        beta = rho_buffer[i] * yi_dot_r  # [B]
         r = r + s_buffer[i] * (alpha_list[i] - beta)[:, None]
 
     # step_vec = -r

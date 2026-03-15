@@ -62,7 +62,11 @@ class TrajOptSolver:
             from curobo_mlx import list_robots
 
             available = list_robots()
-            avail_str = ", ".join(available) if available else "(none found -- is the submodule initialized?)"
+            avail_str = (
+                ", ".join(available)
+                if available
+                else "(none found -- is the submodule initialized?)"
+            )
             raise FileNotFoundError(
                 f"Robot '{robot_name}' not found. "
                 f"Available robots: {avail_str}. "
@@ -201,16 +205,20 @@ class TrajOptSolver:
         # Replicate and add noise
         seeds = mx.broadcast_to(base_traj[None], (num_seeds, self.horizon, self.dof))
         seeds = mx.array(seeds)  # materialise
-        noise_scale = 0.1 * (
-            self.config.joint_limits_high - self.config.joint_limits_low
-        )
+        noise_scale = 0.1 * (self.config.joint_limits_high - self.config.joint_limits_low)
         noise = mx.random.normal(seeds.shape) * noise_scale[None, None, :]
         # First seed is noise-free: zero out its noise via mask
-        mask = mx.concatenate(
-            [mx.zeros((1, self.horizon, self.dof)),
-             mx.ones((num_seeds - 1, self.horizon, self.dof))],
-            axis=0,
-        ) if num_seeds > 1 else mx.zeros_like(noise)
+        mask = (
+            mx.concatenate(
+                [
+                    mx.zeros((1, self.horizon, self.dof)),
+                    mx.ones((num_seeds - 1, self.horizon, self.dof)),
+                ],
+                axis=0,
+            )
+            if num_seeds > 1
+            else mx.zeros_like(noise)
+        )
         noise = noise * mask
         seeds = seeds + noise
         return mx.clip(seeds, self.config.joint_limits_low, self.config.joint_limits_high)
@@ -227,9 +235,7 @@ class TrajOptSolver:
         # Pin first timestep to start
         seeds = mx.concatenate(
             [
-                mx.broadcast_to(
-                    start_config[None, None, :], (num_seeds, 1, self.dof)
-                ),
+                mx.broadcast_to(start_config[None, None, :], (num_seeds, 1, self.dof)),
                 seeds[:, 1:, :],
             ],
             axis=1,
@@ -277,7 +283,7 @@ class TrajOptSolver:
         cost_fn = self._build_trajopt_cost_fn(start_config, goal_pose)
 
         # Flatten for optimisers: [B, H*D]
-        V = self.horizon * self.dof
+        self.horizon * self.dof
 
         def cost_fn_flat(x_flat: mx.array) -> mx.array:
             return cost_fn(x_flat)
@@ -313,9 +319,7 @@ class TrajOptSolver:
         top_indices = mx.argsort(init_costs)[:top_k]
         top_seeds = seeds[top_indices]  # [top_k, H, D]
 
-        candidates = mx.concatenate(
-            [mppi_traj, top_seeds], axis=0
-        )  # [1+top_k, H, D]
+        candidates = mx.concatenate([mppi_traj, top_seeds], axis=0)  # [1+top_k, H, D]
         n_cand = candidates.shape[0]
 
         lbfgs_cfg = LBFGSConfig(
@@ -334,9 +338,7 @@ class TrajOptSolver:
         best_cost = float(cost_refined[best_idx].item())
 
         # Clamp to joint limits
-        best_traj = mx.clip(
-            best_traj, self.config.joint_limits_low, self.config.joint_limits_high
-        )
+        best_traj = mx.clip(best_traj, self.config.joint_limits_low, self.config.joint_limits_high)
 
         # Validate: check final EE pose
         fk_final = self.robot_model.forward(best_traj[-1:])

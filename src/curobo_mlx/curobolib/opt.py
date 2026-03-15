@@ -32,15 +32,21 @@ def lbfgs_cuda(
     Returns: step_vec [B, V]
     """
     # Handle upstream [M, B, V, 1] shape if present
-    squeeze_last = False
     if y_buffer.ndim == 4 and y_buffer.shape[-1] == 1:
-        squeeze_last = True
         y_buffer = y_buffer.squeeze(-1)
         s_buffer = s_buffer.squeeze(-1)
 
     result = lbfgs_step(
-        step_vec, rho_buffer, y_buffer, s_buffer,
-        q, grad_q, x_0, grad_0, epsilon, stable_mode,
+        step_vec,
+        rho_buffer,
+        y_buffer,
+        s_buffer,
+        q,
+        grad_q,
+        x_0,
+        grad_0,
+        epsilon,
+        stable_mode,
     )
     # result: (step_vec, rho_buffer, y_buffer, s_buffer, x_0, grad_0)
     return result[0]
@@ -70,8 +76,16 @@ def lbfgs_cuda_fused(
         s_buffer = s_buffer.squeeze(-1)
 
     result = lbfgs_step(
-        step_vec, rho_buffer, y_buffer, s_buffer,
-        q, grad_q, x_0, grad_0, epsilon, stable_mode,
+        step_vec,
+        rho_buffer,
+        y_buffer,
+        s_buffer,
+        q,
+        grad_q,
+        x_0,
+        grad_0,
+        epsilon,
+        stable_mode,
     )
 
     step_v, rho_buf, y_buf, s_buf, new_x0, new_grad0 = result

@@ -20,10 +20,8 @@ Two implementations:
     - Sparse: pre-extracts active pair indices, computes only those pairs
 """
 
-import numpy as np
-
 import mlx.core as mx
-
+import numpy as np
 
 # ---------------------------------------------------------------------------
 # Epsilon for numerical stability in sqrt gradient
@@ -169,9 +167,9 @@ def self_collision_distance_dense(
     one_hot_j = _one_hot(j_idx, S)  # [B, S]
 
     # [B, S, 3] = [B, S, 1] * [B, 1, 3]
-    grad_xyz = one_hot_i[:, :, None] * grad_i[:, None, :] + one_hot_j[:, :, None] * grad_j[
-        :, None, :
-    ]
+    grad_xyz = (
+        one_hot_i[:, :, None] * grad_i[:, None, :] + one_hot_j[:, :, None] * grad_j[:, None, :]
+    )
 
     # Pad with zeros for the radius channel
     grad_spheres = mx.concatenate([grad_xyz, mx.zeros((B, S, 1))], axis=-1)  # [B, S, 4]
@@ -264,9 +262,9 @@ def self_collision_distance_sparse(
     one_hot_i = _one_hot(worst_i.astype(mx.int32), S)  # [B, S]
     one_hot_j = _one_hot(worst_j.astype(mx.int32), S)  # [B, S]
 
-    grad_xyz = one_hot_i[:, :, None] * grad_i[:, None, :] + one_hot_j[:, :, None] * grad_j[
-        :, None, :
-    ]
+    grad_xyz = (
+        one_hot_i[:, :, None] * grad_i[:, None, :] + one_hot_j[:, :, None] * grad_j[:, None, :]
+    )
 
     grad_spheres = mx.concatenate([grad_xyz, mx.zeros((B, S, 1))], axis=-1)
 

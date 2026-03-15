@@ -13,9 +13,9 @@ import mlx.core as mx
 
 
 def _backward_difference_forward(
-    u_position: mx.array,          # [B, H, D] position control input
-    start_position: mx.array,      # [B, D]
-    start_velocity: mx.array,      # [B, D]
+    u_position: mx.array,  # [B, H, D] position control input
+    start_position: mx.array,  # [B, D]
+    start_velocity: mx.array,  # [B, D]
     start_acceleration: mx.array,  # [B, D]
     traj_dt: float,
 ) -> tuple[mx.array, mx.array, mx.array, mx.array]:
@@ -48,7 +48,7 @@ def _backward_difference_forward(
     # ghost_m1 = start_pos - vel_term * dt       (one step before start)
     # ghost_m2 = start_pos - 2 * vel_term * dt   (two steps before start)
     vel_term = start_velocity - 0.5 * start_acceleration * dt  # [B, D]
-    ghost_m1 = start_position - vel_term * dt       # [B, D]
+    ghost_m1 = start_position - vel_term * dt  # [B, D]
     ghost_m2 = start_position - 2.0 * vel_term * dt  # [B, D]
 
     # Build full position sequence:
@@ -64,12 +64,15 @@ def _backward_difference_forward(
     # The 4-point stencil for output h (h >= 1) uses output positions at [h-3, h-2, h-1, h]
     # which maps to full_pos indices [h-3+2, h-2+2, h-1+2, h+2] = [h-1, h, h+1, h+2]
 
-    pos_full = mx.concatenate([
-        ghost_m2[:, None, :],        # full index 0
-        ghost_m1[:, None, :],        # full index 1
-        start_position[:, None, :],  # full index 2
-        u_position,                  # full indices 3..H+2 (u[0]..u[H-1])
-    ], axis=1)  # [B, H+3, D]
+    pos_full = mx.concatenate(
+        [
+            ghost_m2[:, None, :],  # full index 0
+            ghost_m1[:, None, :],  # full index 1
+            start_position[:, None, :],  # full index 2
+            u_position,  # full indices 3..H+2 (u[0]..u[H-1])
+        ],
+        axis=1,
+    )  # [B, H+3, D]
 
     # Vectorized computation for h=1..H-1:
     if H > 1:
@@ -78,15 +81,15 @@ def _backward_difference_forward(
         # p1 = full_pos[h]    (stencil position h-2)
         # p2 = full_pos[h+1]  (stencil position h-1)
         # p3 = full_pos[h+2]  (stencil position h = output position)
-        p0 = pos_full[:, 0:H-1, :]   # h=1..H-1: full indices 0..H-2
-        p1 = pos_full[:, 1:H, :]     # h=1..H-1: full indices 1..H-1
-        p2 = pos_full[:, 2:H+1, :]   # h=1..H-1: full indices 2..H
-        p3 = pos_full[:, 3:H+2, :]   # h=1..H-1: full indices 3..H+1
+        p0 = pos_full[:, 0 : H - 1, :]  # h=1..H-1: full indices 0..H-2
+        p1 = pos_full[:, 1:H, :]  # h=1..H-1: full indices 1..H-1
+        p2 = pos_full[:, 2 : H + 1, :]  # h=1..H-1: full indices 2..H
+        p3 = pos_full[:, 3 : H + 2, :]  # h=1..H-1: full indices 3..H+1
 
-        h_pos = p3                                             # [B, H-1, D]
-        h_vel = (-p2 + p3) * dt                                # [B, H-1, D]
-        h_acc = (p1 - 2.0 * p2 + p3) * dt2                     # [B, H-1, D]
-        h_jerk = (-p0 + 3.0 * p1 - 3.0 * p2 + p3) * dt3       # [B, H-1, D]
+        h_pos = p3  # [B, H-1, D]
+        h_vel = (-p2 + p3) * dt  # [B, H-1, D]
+        h_acc = (p1 - 2.0 * p2 + p3) * dt2  # [B, H-1, D]
+        h_jerk = (-p0 + 3.0 * p1 - 3.0 * p2 + p3) * dt3  # [B, H-1, D]
 
         out_pos = mx.concatenate([start_position[:, None, :], h_pos], axis=1)
         out_vel = mx.concatenate([start_velocity[:, None, :], h_vel], axis=1)
@@ -103,10 +106,10 @@ def _backward_difference_forward(
 
 @mx.compile
 def _backward_difference_backward(
-    grad_position: mx.array,       # [B, H, D]
-    grad_velocity: mx.array,       # [B, H, D]
-    grad_acceleration: mx.array,   # [B, H, D]
-    grad_jerk: mx.array,           # [B, H, D]
+    grad_position: mx.array,  # [B, H, D]
+    grad_velocity: mx.array,  # [B, H, D]
+    grad_acceleration: mx.array,  # [B, H, D]
+    grad_jerk: mx.array,  # [B, H, D]
     traj_dt: float,
 ) -> mx.array:
     """Backward pass through backward finite difference computation.
@@ -135,24 +138,24 @@ def _backward_difference_backward(
     zero2 = mx.zeros([B, 2, D])
     zero3 = mx.zeros([B, 3, D])
 
-    g_vel_pad = mx.concatenate([grad_velocity, zero1], axis=1)     # [B, H+1, D]
-    g_acc_pad = mx.concatenate([grad_acceleration, zero2], axis=1) # [B, H+2, D]
-    g_jerk_pad = mx.concatenate([grad_jerk, zero3], axis=1)        # [B, H+3, D]
+    g_vel_pad = mx.concatenate([grad_velocity, zero1], axis=1)  # [B, H+1, D]
+    g_acc_pad = mx.concatenate([grad_acceleration, zero2], axis=1)  # [B, H+2, D]
+    g_jerk_pad = mx.concatenate([grad_jerk, zero3], axis=1)  # [B, H+3, D]
 
     # For h = 1..H-1 (output u index 0..H-2):
     g_pos_h = grad_position[:, 1:H, :]  # [B, H-1, D]
 
-    g_vel_h0 = g_vel_pad[:, 1:H, :]     # g_vel[h]
-    g_vel_h1 = g_vel_pad[:, 2:H+1, :]   # g_vel[h+1]
+    g_vel_h0 = g_vel_pad[:, 1:H, :]  # g_vel[h]
+    g_vel_h1 = g_vel_pad[:, 2 : H + 1, :]  # g_vel[h+1]
 
-    g_acc_h0 = g_acc_pad[:, 1:H, :]     # g_acc[h]
-    g_acc_h1 = g_acc_pad[:, 2:H+1, :]   # g_acc[h+1]
-    g_acc_h2 = g_acc_pad[:, 3:H+2, :]   # g_acc[h+2]
+    g_acc_h0 = g_acc_pad[:, 1:H, :]  # g_acc[h]
+    g_acc_h1 = g_acc_pad[:, 2 : H + 1, :]  # g_acc[h+1]
+    g_acc_h2 = g_acc_pad[:, 3 : H + 2, :]  # g_acc[h+2]
 
-    g_jerk_h0 = g_jerk_pad[:, 1:H, :]   # g_jerk[h]
-    g_jerk_h1 = g_jerk_pad[:, 2:H+1, :] # g_jerk[h+1]
-    g_jerk_h2 = g_jerk_pad[:, 3:H+2, :] # g_jerk[h+2]
-    g_jerk_h3 = g_jerk_pad[:, 4:H+3, :] # g_jerk[h+3]
+    g_jerk_h0 = g_jerk_pad[:, 1:H, :]  # g_jerk[h]
+    g_jerk_h1 = g_jerk_pad[:, 2 : H + 1, :]  # g_jerk[h+1]
+    g_jerk_h2 = g_jerk_pad[:, 3 : H + 2, :]  # g_jerk[h+2]
+    g_jerk_h3 = g_jerk_pad[:, 4 : H + 3, :]  # g_jerk[h+3]
 
     out_grad = (
         g_pos_h
@@ -169,9 +172,9 @@ def _backward_difference_backward(
 
 
 def position_clique_forward(
-    u_position: mx.array,          # [B, H, D] position control input
-    start_position: mx.array,      # [B, D]
-    start_velocity: mx.array,      # [B, D]
+    u_position: mx.array,  # [B, H, D] position control input
+    start_position: mx.array,  # [B, D]
+    start_velocity: mx.array,  # [B, D]
     start_acceleration: mx.array,  # [B, D]
     traj_dt: float,
     mode: int = -1,
@@ -192,10 +195,10 @@ def position_clique_forward(
 
 
 def position_clique_backward(
-    grad_position: mx.array,       # [B, H, D]
-    grad_velocity: mx.array,       # [B, H, D]
-    grad_acceleration: mx.array,   # [B, H, D]
-    grad_jerk: mx.array,           # [B, H, D]
+    grad_position: mx.array,  # [B, H, D]
+    grad_velocity: mx.array,  # [B, H, D]
+    grad_acceleration: mx.array,  # [B, H, D]
+    grad_jerk: mx.array,  # [B, H, D]
     traj_dt: float,
     mode: int = -1,
 ) -> mx.array:

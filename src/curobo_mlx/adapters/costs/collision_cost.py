@@ -45,7 +45,7 @@ class CollisionCost(CostBase):
         # Penetration cost: max(0, activation_distance - distance)
         penetration = mx.maximum(self.activation_distance - collision_buffer, 0.0)
         # Sum across spheres
-        cost = self.weight * mx.sum(penetration ** 2, axis=-1)  # [B, H]
+        cost = self.weight * mx.sum(penetration**2, axis=-1)  # [B, H]
 
         if self.terminal:
             cost = self._apply_terminal_mask(cost)

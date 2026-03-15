@@ -6,7 +6,6 @@ with correct shapes, dtypes, and basic numerical behavior.
 
 import mlx.core as mx
 import numpy as np
-import pytest
 
 
 class TestCurolibKinematics:
@@ -33,9 +32,21 @@ class TestCurolibKinematics:
         grad_q = mx.zeros((B, n_dof))
 
         pos, quat, spheres = get_cuda_kinematics(
-            link_pos, link_quat, batch_sph, cumul, q, ft, sph,
-            link_map, joint_map, jtype, store_map, sph_map,
-            chain_map, joffset, grad_q,
+            link_pos,
+            link_quat,
+            batch_sph,
+            cumul,
+            q,
+            ft,
+            sph,
+            link_map,
+            joint_map,
+            jtype,
+            store_map,
+            sph_map,
+            chain_map,
+            joffset,
+            grad_q,
         )
         assert pos.shape == (B, n_store, 3)
         assert quat.shape == (B, n_store, 4)
@@ -101,8 +112,7 @@ class TestCurolibLineSearch:
         cost = mx.array([5.0, 15.0, 3.0])  # first and third improve
         q = mx.ones((B, D))
 
-        nc, nq, ni = update_best(best_cost, best_q, best_iter, cur_iter,
-                                  cost, q, D, 0)
+        nc, nq, ni = update_best(best_cost, best_q, best_iter, cur_iter, cost, q, D, 0)
         nc_np = np.array(nc)
         assert nc_np[0] == 5.0  # improved
         assert nc_np[1] == 10.0  # not improved
@@ -126,7 +136,9 @@ class TestCurolibTensorStep:
             start_velocity=mx.zeros((B, D)),
             start_acceleration=mx.zeros((B, D)),
             traj_dt=mx.array([0.02]),
-            batch_size=B, horizon=H, dof=D,
+            batch_size=B,
+            horizon=H,
+            dof=D,
         )
         assert pos.shape == (B, H, D)
         assert vel.shape == (B, H, D)
@@ -136,9 +148,9 @@ class TestCurolibGeomPoseDistance:
     """Test curobolib.geom pose distance bridge."""
 
     def test_get_pose_distance_shapes(self):
-        from curobo_mlx.curobolib.geom import get_pose_distance, BATCH_GOAL
+        from curobo_mlx.curobolib.geom import BATCH_GOAL, get_pose_distance
 
-        B, H, G = 2, 1, 1
+        B, H, _G = 2, 1, 1
         dist, p_d, r_d, p_v, q_v, idx = get_pose_distance(
             out_distance=mx.zeros((B, H)),
             out_position_distance=mx.zeros((B, H)),
@@ -159,7 +171,9 @@ class TestCurolibGeomPoseDistance:
             offset_tstep_fraction=mx.zeros(1),
             batch_pose_idx=mx.zeros(B, dtype=mx.int32),
             project_distance=mx.zeros(1, dtype=mx.uint8),
-            batch_size=B, horizon=H, mode=BATCH_GOAL,
+            batch_size=B,
+            horizon=H,
+            mode=BATCH_GOAL,
         )
         assert dist.shape[0] == B
         # Position distance should be ~1.0 (unit displacement)

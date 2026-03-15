@@ -11,7 +11,7 @@ from typing import Optional
 import mlx.core as mx
 
 from curobo_mlx.adapters.costs.cost_base import CostBase, CostConfig
-from curobo_mlx.kernels.pose_distance import pose_distance, BATCH_GOAL
+from curobo_mlx.kernels.pose_distance import BATCH_GOAL, pose_distance
 
 
 class PoseCost(CostBase):
@@ -30,19 +30,11 @@ class PoseCost(CostBase):
     ):
         super().__init__(config)
         # Per-component weights: [rot_x, rot_y, rot_z, pos_x, pos_y, pos_z]
-        self.pose_vec_weight = (
-            vec_weight if vec_weight is not None else mx.ones(6)
-        )
+        self.pose_vec_weight = vec_weight if vec_weight is not None else mx.ones(6)
         # [rotation_weight, position_weight, r_alpha, p_alpha]
-        self.weight_vec = (
-            weight_vec
-            if weight_vec is not None
-            else mx.array([1.0, 1.0, 1.0, 1.0])
-        )
+        self.weight_vec = weight_vec if weight_vec is not None else mx.array([1.0, 1.0, 1.0, 1.0])
         self.pose_vec_convergence = (
-            vec_convergence
-            if vec_convergence is not None
-            else mx.array([0.0, 0.0])
+            vec_convergence if vec_convergence is not None else mx.array([0.0, 0.0])
         )
         self.mode = mode
         self.num_goals = num_goals

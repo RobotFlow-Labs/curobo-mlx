@@ -12,7 +12,6 @@ Tests cover:
 
 import mlx.core as mx
 import numpy as np
-import pytest
 
 from curobo_mlx.kernels.pose_distance import (
     BATCH_GOAL,
@@ -43,8 +42,16 @@ class TestPositionDistance:
         batch_idx = mx.array([0], dtype=mx.int32)
 
         dist, p_dist, r_dist, _, _, _ = pose_distance(
-            pos, pos, quat, quat, vec_w, weight, vec_conv, batch_idx,
-            mode=SINGLE_GOAL, num_goals=1,
+            pos,
+            pos,
+            quat,
+            quat,
+            vec_w,
+            weight,
+            vec_conv,
+            batch_idx,
+            mode=SINGLE_GOAL,
+            num_goals=1,
         )
         mx.eval(dist, p_dist)
 
@@ -63,8 +70,16 @@ class TestPositionDistance:
         batch_idx = mx.array([0], dtype=mx.int32)
 
         dist, p_dist, r_dist, _, _, _ = pose_distance(
-            pos_cur, pos_goal, quat, quat, vec_w, weight, vec_conv, batch_idx,
-            mode=SINGLE_GOAL, num_goals=1,
+            pos_cur,
+            pos_goal,
+            quat,
+            quat,
+            vec_w,
+            weight,
+            vec_conv,
+            batch_idx,
+            mode=SINGLE_GOAL,
+            num_goals=1,
         )
         mx.eval(dist, p_dist)
 
@@ -84,8 +99,16 @@ class TestPositionDistance:
         batch_idx = mx.array([0], dtype=mx.int32)
 
         dist, p_dist, _, _, _, _ = pose_distance(
-            pos_cur, pos_goal, quat, quat, vec_w, weight, vec_conv, batch_idx,
-            mode=SINGLE_GOAL, num_goals=1,
+            pos_cur,
+            pos_goal,
+            quat,
+            quat,
+            vec_w,
+            weight,
+            vec_conv,
+            batch_idx,
+            mode=SINGLE_GOAL,
+            num_goals=1,
         )
         mx.eval(p_dist)
 
@@ -106,8 +129,16 @@ class TestRotationDistance:
         batch_idx = mx.array([0], dtype=mx.int32)
 
         dist, _, r_dist, _, _, _ = pose_distance(
-            pos, pos, quat, quat, vec_w, weight, vec_conv, batch_idx,
-            mode=SINGLE_GOAL, num_goals=1,
+            pos,
+            pos,
+            quat,
+            quat,
+            vec_w,
+            weight,
+            vec_conv,
+            batch_idx,
+            mode=SINGLE_GOAL,
+            num_goals=1,
         )
         mx.eval(r_dist)
 
@@ -127,8 +158,16 @@ class TestRotationDistance:
         batch_idx = mx.array([0], dtype=mx.int32)
 
         dist, _, r_dist, _, _, _ = pose_distance(
-            pos, pos, q1, q2, vec_w, weight, vec_conv, batch_idx,
-            mode=SINGLE_GOAL, num_goals=1,
+            pos,
+            pos,
+            q1,
+            q2,
+            vec_w,
+            weight,
+            vec_conv,
+            batch_idx,
+            mode=SINGLE_GOAL,
+            num_goals=1,
         )
         mx.eval(r_dist)
 
@@ -149,8 +188,16 @@ class TestRotationDistance:
         batch_idx = mx.array([0], dtype=mx.int32)
 
         dist, _, r_dist, _, _, _ = pose_distance(
-            pos, pos, q1, q2, vec_w, weight, vec_conv, batch_idx,
-            mode=SINGLE_GOAL, num_goals=1,
+            pos,
+            pos,
+            q1,
+            q2,
+            vec_w,
+            weight,
+            vec_conv,
+            batch_idx,
+            mode=SINGLE_GOAL,
+            num_goals=1,
         )
         mx.eval(r_dist)
 
@@ -175,8 +222,16 @@ class TestCombinedDistance:
         batch_idx = mx.array([0], dtype=mx.int32)
 
         dist_p, _, _, _, _, _ = pose_distance(
-            pos_cur, pos_goal, q1, q1, vec_w, weight_p, vec_conv, batch_idx,
-            mode=SINGLE_GOAL, num_goals=1,
+            pos_cur,
+            pos_goal,
+            q1,
+            q1,
+            vec_w,
+            weight_p,
+            vec_conv,
+            batch_idx,
+            mode=SINGLE_GOAL,
+            num_goals=1,
         )
         mx.eval(dist_p)
 
@@ -191,17 +246,21 @@ class TestGoalsetSelection:
         """Should select the closest goal from the goalset."""
         pos_cur = mx.array([[0.0, 0.0, 0.0]])
         # Three goals, second is closest
-        goal_pos = mx.array([
-            [10.0, 0.0, 0.0],
-            [1.0, 0.0, 0.0],
-            [5.0, 0.0, 0.0],
-        ])
+        goal_pos = mx.array(
+            [
+                [10.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [5.0, 0.0, 0.0],
+            ]
+        )
         q = mx.array([[1.0, 0.0, 0.0, 0.0]])
-        goal_q = mx.array([
-            [1.0, 0.0, 0.0, 0.0],
-            [1.0, 0.0, 0.0, 0.0],
-            [1.0, 0.0, 0.0, 0.0],
-        ])
+        goal_q = mx.array(
+            [
+                [1.0, 0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0, 0.0],
+            ]
+        )
 
         weight = mx.array([0.0, 1.0, 1.0, 1.0])
         vec_w = mx.ones(6)
@@ -209,8 +268,16 @@ class TestGoalsetSelection:
         batch_idx = mx.array([0], dtype=mx.int32)
 
         dist, p_dist, _, _, _, best_idx = pose_distance(
-            pos_cur, goal_pos, q, goal_q, vec_w, weight, vec_conv, batch_idx,
-            mode=GOALSET, num_goals=3,
+            pos_cur,
+            goal_pos,
+            q,
+            goal_q,
+            vec_w,
+            weight,
+            vec_conv,
+            batch_idx,
+            mode=GOALSET,
+            num_goals=3,
         )
         mx.eval(dist, best_idx)
 
@@ -224,22 +291,30 @@ class TestBatchGoalMode:
 
     def test_batch_goal_indexing(self):
         """Each batch element should use its own goal via batch_pose_idx."""
-        pos_cur = mx.array([
-            [0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0],
-        ])
-        goal_pos = mx.array([
-            [1.0, 0.0, 0.0],
-            [0.0, 2.0, 0.0],
-        ])
-        q = mx.array([
-            [1.0, 0.0, 0.0, 0.0],
-            [1.0, 0.0, 0.0, 0.0],
-        ])
-        goal_q = mx.array([
-            [1.0, 0.0, 0.0, 0.0],
-            [1.0, 0.0, 0.0, 0.0],
-        ])
+        pos_cur = mx.array(
+            [
+                [0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0],
+            ]
+        )
+        goal_pos = mx.array(
+            [
+                [1.0, 0.0, 0.0],
+                [0.0, 2.0, 0.0],
+            ]
+        )
+        q = mx.array(
+            [
+                [1.0, 0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0, 0.0],
+            ]
+        )
+        goal_q = mx.array(
+            [
+                [1.0, 0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0, 0.0],
+            ]
+        )
 
         weight = mx.array([0.0, 1.0, 1.0, 1.0])
         vec_w = mx.ones(6)
@@ -247,8 +322,16 @@ class TestBatchGoalMode:
         batch_idx = mx.array([0, 1], dtype=mx.int32)
 
         dist, p_dist, _, _, _, _ = pose_distance(
-            pos_cur, goal_pos, q, goal_q, vec_w, weight, vec_conv, batch_idx,
-            mode=BATCH_GOAL, num_goals=1,
+            pos_cur,
+            goal_pos,
+            q,
+            goal_q,
+            vec_w,
+            weight,
+            vec_conv,
+            batch_idx,
+            mode=BATCH_GOAL,
+            num_goals=1,
         )
         mx.eval(p_dist)
 
@@ -273,8 +356,16 @@ class TestGradientVectors:
         batch_idx = mx.array([0], dtype=mx.int32)
 
         _, _, _, p_vec, _, _ = pose_distance(
-            pos_cur, pos_goal, q, q, vec_w, weight, vec_conv, batch_idx,
-            mode=SINGLE_GOAL, num_goals=1,
+            pos_cur,
+            pos_goal,
+            q,
+            q,
+            vec_w,
+            weight,
+            vec_conv,
+            batch_idx,
+            mode=SINGLE_GOAL,
+            num_goals=1,
         )
         mx.eval(p_vec)
 
@@ -300,8 +391,16 @@ class TestConvergenceThreshold:
         batch_idx = mx.array([0], dtype=mx.int32)
 
         dist, p_dist, _, _, _, _ = pose_distance(
-            pos_cur, pos_goal, q, q, vec_w, weight, vec_conv, batch_idx,
-            mode=SINGLE_GOAL, num_goals=1,
+            pos_cur,
+            pos_goal,
+            q,
+            q,
+            vec_w,
+            weight,
+            vec_conv,
+            batch_idx,
+            mode=SINGLE_GOAL,
+            num_goals=1,
         )
         mx.eval(p_dist)
 
@@ -320,8 +419,16 @@ class TestConvergenceThreshold:
         batch_idx = mx.array([0], dtype=mx.int32)
 
         dist, p_dist, _, _, _, _ = pose_distance(
-            pos_cur, pos_goal, q, q, vec_w, weight, vec_conv, batch_idx,
-            mode=SINGLE_GOAL, num_goals=1,
+            pos_cur,
+            pos_goal,
+            q,
+            q,
+            vec_w,
+            weight,
+            vec_conv,
+            batch_idx,
+            mode=SINGLE_GOAL,
+            num_goals=1,
         )
         mx.eval(p_dist)
 
@@ -342,7 +449,13 @@ class TestBackwardPoseDistance:
         q_vec = mx.concatenate([mx.zeros((B, 1)), mx.ones((B, 3))], axis=-1)
 
         grad_pos, grad_quat = backward_pose_distance(
-            grad_dist, grad_p, grad_q, p_weight, p_vec, q_vec, use_distance=True,
+            grad_dist,
+            grad_p,
+            grad_q,
+            p_weight,
+            p_vec,
+            q_vec,
+            use_distance=True,
         )
         mx.eval(grad_pos, grad_quat)
 
@@ -361,7 +474,13 @@ class TestBackwardPoseDistance:
         q_vec = mx.concatenate([mx.zeros((B, 1)), mx.ones((B, 3))], axis=-1)
 
         grad_pos, grad_quat = backward_pose_distance(
-            grad_dist, grad_p, grad_q, p_weight, p_vec, q_vec, use_distance=True,
+            grad_dist,
+            grad_p,
+            grad_q,
+            p_weight,
+            p_vec,
+            q_vec,
+            use_distance=True,
         )
         mx.eval(grad_pos, grad_quat)
 
