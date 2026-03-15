@@ -214,7 +214,6 @@ class IKSolver:
             return cost_fn(q)
 
         mppi = MLXMPPI(mppi_cfg, mppi_rollout)
-        seed_config[:, None, :]  # [N, 1, D]
         # MPPI expects [n_envs, H, D]; we pass [1, 1, D] as mean, it samples around it
         # But we want diversity from seeds, so use the mean of seeds
         mean_seed = mx.mean(seed_config, axis=0, keepdims=True)[:, None, :]  # [1, 1, D]

@@ -349,6 +349,10 @@ def sphere_obb_distance(
 
     # Multi-environment path: vectorize over obstacles within each batch element
     # but still loop over unique environments.
+    # NOTE: This path is inherently slower than the single-env vectorized path
+    # above due to per-environment Python dispatch and .item() calls for loop
+    # bounds. When possible, batch queries so all elements use the same
+    # environment to hit the fast vectorized path instead.
     all_distance = mx.zeros((B, H, S))
     all_grad = mx.zeros((B, H, S, 3))
 
@@ -380,7 +384,6 @@ def sphere_obb_distance(
         b_sph_pos = sph_pos[bi]  # [Bg, H, S, 3]
         b_sph_rad = inflated_rad[bi]  # [Bg, H, S]
         b_valid = valid_sphere[bi]  # [Bg, H, S]
-        len(bi)
 
         # Vectorize over obstacles: broadcast [Bg, H, S, 1, 3] with [1, 1, 1, O, 3]
         sph_5d = b_sph_pos[:, :, :, None, :]  # [Bg, H, S, 1, 3]
@@ -613,6 +616,10 @@ def swept_sphere_obb_distance(
 
     fl_sw_steps = 2.0 * sweep_steps + 1.0
 
+    # NOTE: The swept collision check uses per-batch and per-obstacle Python
+    # loops with .item() calls for loop bounds. This is the reference
+    # implementation prioritizing correctness; for production use,
+    # sphere_obb_distance (the single-env vectorized path) is preferred.
     for b in range(B):
         env_idx = int(env_query_idx[b].item())
         nboxes = int(n_env_obb[env_idx].item())
@@ -748,7 +755,11 @@ def sphere_obb_signed_distance(
 ) -> tuple[mx.array, mx.array]:
     """Compute raw signed distance between spheres and OBBs.
 
-    Simplified interface for testing and standalone use.
+    Simple reference implementation for testing and standalone use.
+    Uses a Python for-loop over obstacles with .item() calls, so it is
+    not suitable for performance-critical paths. For production collision
+    checking, use :func:`sphere_obb_distance` which delegates to the
+    fully vectorized single-env path when possible.
 
     Args:
         sphere_pos: [B, H, S, 3] sphere centers in world frame.

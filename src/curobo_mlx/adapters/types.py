@@ -100,15 +100,6 @@ class MLXRobotModelConfig:
     num_joints: int  # n_dof (actuated joints)
     num_links: int  # total links in the kinematic tree
     num_spheres: int
-
-    def __repr__(self) -> str:
-        return (
-            f"MLXRobotModelConfig('{self.robot_name}', "
-            f"{self.num_joints}-DOF, "
-            f"{self.num_links} links, "
-            f"{self.num_spheres} spheres)"
-        )
-
     joint_names: List[str]
     link_names: List[str]  # stored link names
     ee_link_name: str
@@ -129,6 +120,14 @@ class MLXRobotModelConfig:
     # Self-collision (optional)
     self_collision_distance: Optional[mx.array] = None  # [S, S] float32
     self_collision_offsets: Optional[mx.array] = None  # [S]
+
+    def __repr__(self) -> str:
+        return (
+            f"MLXRobotModelConfig('{self.robot_name}', "
+            f"{self.num_joints}-DOF, "
+            f"{self.num_links} links, "
+            f"{self.num_spheres} spheres)"
+        )
 
 
 # ---------------------------------------------------------------------------

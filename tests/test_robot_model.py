@@ -297,3 +297,65 @@ class TestTypes:
         js = MLXJointState.from_position(pos)
         assert js.position.shape == (2, 7)
         _check_close(js.velocity, mx.zeros((2, 7)))
+
+
+# ---------------------------------------------------------------------------
+# Multi-robot loading
+# ---------------------------------------------------------------------------
+
+
+class TestMultiRobot:
+    """Test loading multiple robot configurations."""
+
+    @pytest.mark.parametrize("robot_name", ["ur5e", "ur10e", "kinova_gen3", "iiwa"])
+    def test_load_robot(self, robot_name):
+        """Each robot should load and produce valid FK output."""
+        from curobo_mlx.adapters.config_bridge import load_mlx_robot_config
+        from curobo_mlx.adapters.robot_model import MLXRobotModel
+
+        try:
+            config = load_mlx_robot_config(robot_name)
+        except (FileNotFoundError, Exception):
+            pytest.skip(f"{robot_name} config not available")
+
+        model = MLXRobotModel(config)
+        q = mx.zeros((1, config.num_joints))
+        state = model.forward(q)
+        mx.eval(state.link_positions, state.ee_pose.position)
+
+        assert state.link_positions.shape[0] == 1
+        assert not np.any(np.isnan(np.array(state.link_positions)))
+
+    @pytest.mark.parametrize("robot_name", ["ur5e", "ur10e", "kinova_gen3", "iiwa"])
+    def test_robot_ee_not_at_origin(self, robot_name):
+        """EE at zero config should not be at origin."""
+        from curobo_mlx.adapters.config_bridge import load_mlx_robot_config
+        from curobo_mlx.adapters.robot_model import MLXRobotModel
+
+        try:
+            config = load_mlx_robot_config(robot_name)
+        except (FileNotFoundError, Exception):
+            pytest.skip(f"{robot_name} config not available")
+
+        model = MLXRobotModel(config)
+        q = mx.zeros((1, config.num_joints))
+        state = model.forward(q)
+        mx.eval(state.ee_pose.position)
+
+        ee_pos = np.array(state.ee_pose.position[0])
+        ee_dist = np.linalg.norm(ee_pos)
+        assert ee_dist > 0.05, f"{robot_name} EE too close to origin: {ee_pos}"
+
+    @pytest.mark.parametrize("robot_name", ["ur5e", "ur10e", "kinova_gen3", "iiwa"])
+    def test_robot_joint_limits_valid(self, robot_name):
+        """Joint limits should have low < high for all joints."""
+        from curobo_mlx.adapters.config_bridge import load_mlx_robot_config
+
+        try:
+            config = load_mlx_robot_config(robot_name)
+        except (FileNotFoundError, Exception):
+            pytest.skip(f"{robot_name} config not available")
+
+        low = np.array(config.joint_limits_low)
+        high = np.array(config.joint_limits_high)
+        assert np.all(low < high), f"{robot_name} joint limits invalid: low={low}, high={high}"

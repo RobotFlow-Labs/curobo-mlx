@@ -46,6 +46,10 @@ class MLXMPPI:
             config: MPPI configuration.
             rollout_fn: Function mapping action sequences [B, H, D] -> costs [B].
                 This is treated as a black box; no gradients are needed.
+
+        Note:
+            For reproducibility, the caller should set ``mx.random.seed()``
+            before calling ``optimize()``.
         """
         self.config = config
         self.rollout_fn = rollout_fn
@@ -59,9 +63,6 @@ class MLXMPPI:
         self.action_lows = config.action_lows
         self.action_highs = config.action_highs
         self.sample_mode = config.sample_mode
-
-        # Set seed for reproducibility
-        mx.random.seed(config.seed)
 
     def _sample_perturbations(self, mean_action: mx.array) -> mx.array:
         """Sample perturbed action sequences around the mean.

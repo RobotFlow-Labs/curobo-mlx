@@ -103,11 +103,13 @@ class MLXLBFGSOpt:
         L1 = len(self.line_search_scale)
 
         for iteration in range(self.n_iters):
-            # Compute cost and gradient via automatic differentiation
-            # We sum costs across batch for grad, then get per-element costs
-            loss, grad_q = mx.value_and_grad(self._cost_fn_sum)(q)
+            # Compute per-element costs and gradient via automatic differentiation.
+            # We evaluate cost_fn once for per-element costs and derive the
+            # gradient from _cost_fn_sum (which internally calls cost_fn again,
+            # but this is required since mx.grad needs the forward pass).
             per_cost = self.cost_fn(q)
-            mx.eval(loss, grad_q, per_cost)
+            grad_q = mx.grad(self._cost_fn_sum)(q)
+            mx.eval(per_cost, grad_q)
 
             # Check convergence
             if mx.max(per_cost).item() < self.cost_convergence:
