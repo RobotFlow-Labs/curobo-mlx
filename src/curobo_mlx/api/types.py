@@ -32,6 +32,15 @@ class IKResult:
     num_seeds: int
     solve_time_ms: float = 0.0
 
+    def __repr__(self) -> str:
+        status = "OK" if self.success else "FAILED"
+        return (
+            f"IKResult({status}, "
+            f"pos_err={self.position_error*1000:.2f}mm, "
+            f"rot_err={self.rotation_error:.4f}rad, "
+            f"{self.solve_time_ms:.1f}ms)"
+        )
+
 
 @dataclass
 class TrajOptResult:
@@ -55,6 +64,16 @@ class TrajOptResult:
     rotation_error: float = 0.0
     solve_time_ms: float = 0.0
 
+    def __repr__(self) -> str:
+        status = "OK" if self.success else "FAILED"
+        H, D = self.trajectory.shape if self.trajectory is not None else (0, 0)
+        return (
+            f"TrajOptResult({status}, "
+            f"{H} steps × {D} DOF, "
+            f"cost={self.cost:.4f}, "
+            f"{self.solve_time_ms:.1f}ms)"
+        )
+
 
 @dataclass
 class MotionGenResult:
@@ -75,3 +94,14 @@ class MotionGenResult:
     ik_result: Optional[IKResult] = None
     trajopt_result: Optional[TrajOptResult] = None
     solve_time_ms: float = 0.0
+
+    def __repr__(self) -> str:
+        if self.trajectory is not None:
+            traj_info = f"{self.trajectory.shape[0]} waypoints"
+        else:
+            traj_info = "no trajectory"
+        return (
+            f"MotionGenResult({self.status}, "
+            f"{traj_info}, "
+            f"{self.solve_time_ms:.1f}ms)"
+        )

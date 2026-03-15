@@ -26,6 +26,13 @@ class MLXPose:
     position: mx.array
     quaternion: mx.array
 
+    def __repr__(self) -> str:
+        p = self.position
+        q = self.quaternion
+        if p.ndim == 1:
+            return f"MLXPose(pos=[{float(p[0]):.4f}, {float(p[1]):.4f}, {float(p[2]):.4f}])"
+        return f"MLXPose(shape={p.shape})"
+
 
 # ---------------------------------------------------------------------------
 # Joint state
@@ -95,6 +102,14 @@ class MLXRobotModelConfig:
     num_joints: int  # n_dof (actuated joints)
     num_links: int  # total links in the kinematic tree
     num_spheres: int
+
+    def __repr__(self) -> str:
+        return (
+            f"MLXRobotModelConfig('{self.robot_name}', "
+            f"{self.num_joints}-DOF, "
+            f"{self.num_links} links, "
+            f"{self.num_spheres} spheres)"
+        )
     joint_names: List[str]
     link_names: List[str]  # stored link names
     ee_link_name: str
