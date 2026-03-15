@@ -1,12 +1,15 @@
-"""MLX wrapper for pose distance computation, matching upstream curobolib/geom.py API.
+"""MLX wrapper for geometry computation, matching upstream curobolib/geom.py API.
 
-This module provides the pose distance functions from upstream geom.py.
-Collision-related functions (SdfSphereOBB, SelfCollisionDistance, etc.)
-are NOT implemented here -- they will be handled by a separate module.
+This module provides the pose distance and collision functions from upstream geom.py.
 """
 
 import mlx.core as mx
 
+from ..kernels.collision import (
+    sphere_obb_distance,
+    sphere_obb_distance_vectorized,
+    swept_sphere_obb_distance,
+)
 from ..kernels.self_collision import self_collision_distance
 from ..kernels.pose_distance import (
     BATCH_GOAL,
@@ -198,4 +201,155 @@ def get_self_collision_distance(
         coll_matrix=coll_matrix,
         weight=weight,
         use_sparse=use_sparse,
+    )
+
+
+def get_sphere_obb_collision(
+    query_sphere: mx.array,
+    weight: mx.array,
+    activation_distance: mx.array,
+    obb_accel: mx.array,
+    obb_bounds: mx.array,
+    obb_mat: mx.array,
+    obb_enable: mx.array,
+    n_env_obb: mx.array,
+    env_query_idx: mx.array,
+    max_nobs: int,
+    batch_size: int,
+    horizon: int,
+    n_spheres: int,
+    transform_back: bool = True,
+    compute_distance: bool = True,
+    use_batch_env: bool = True,
+    sum_collisions: bool = True,
+    compute_esdf: bool = False,
+) -> tuple[mx.array, mx.array, mx.array]:
+    """Compute sphere-OBB collision cost matching upstream SdfSphereOBB API.
+
+    Args:
+        query_sphere: [B*H*S, 4] or [B, H, S, 4] sphere positions + radius.
+        weight: [1] cost weight.
+        activation_distance: [1] eta threshold.
+        obb_accel: [total_obs, 8] OBB inverse transforms (unused, same as obb_mat).
+        obb_bounds: [total_obs, 4] OBB extents [dx, dy, dz, 0].
+        obb_mat: [total_obs, 8] OBB transforms [x, y, z, qw, qx, qy, qz, 0].
+        obb_enable: [total_obs] uint8 enable mask.
+        n_env_obb: [E] int32 OBBs per environment.
+        env_query_idx: [B] int32 environment index per batch.
+        max_nobs: int, max OBBs per environment.
+        batch_size: B.
+        horizon: H.
+        n_spheres: S.
+        transform_back: compute gradient in world frame.
+        compute_distance: if True compute distance (else collision check only).
+        use_batch_env: if True use per-batch environment indexing.
+        sum_collisions: if True sum costs across obstacles.
+        compute_esdf: if True compute ESDF (not yet supported).
+
+    Returns:
+        out_distance: [B, H, S] cost.
+        out_grad: [B, H, S, 4] gradient vectors.
+        sparsity_idx: [B, H, S] uint8 collision flags.
+    """
+    w = float(weight.reshape(-1)[0].item())
+    eta = float(activation_distance.reshape(-1)[0].item())
+
+    # Reshape query_sphere to [B, H, S, 4]
+    if query_sphere.ndim == 2:
+        query_sphere = query_sphere.reshape(batch_size, horizon, n_spheres, 4)
+    elif query_sphere.ndim == 3:
+        query_sphere = query_sphere.reshape(batch_size, horizon, n_spheres, 4)
+
+    # Check if single environment for fast path
+    unique_envs = set(int(env_query_idx[i].item()) for i in range(batch_size))
+    if len(unique_envs) == 1:
+        return sphere_obb_distance_vectorized(
+            sphere_position=query_sphere,
+            obb_mat=obb_mat,
+            obb_bounds=obb_bounds,
+            obb_enable=obb_enable,
+            n_env_obb=n_env_obb,
+            env_query_idx=env_query_idx,
+            max_nobs=max_nobs,
+            activation_distance=eta,
+            weight=w,
+            transform_back=transform_back,
+            sum_collisions=sum_collisions,
+        )
+
+    return sphere_obb_distance(
+        sphere_position=query_sphere,
+        obb_mat=obb_mat,
+        obb_bounds=obb_bounds,
+        obb_enable=obb_enable,
+        n_env_obb=n_env_obb,
+        env_query_idx=env_query_idx,
+        max_nobs=max_nobs,
+        activation_distance=eta,
+        weight=w,
+        transform_back=transform_back,
+        sum_collisions=sum_collisions,
+    )
+
+
+def get_swept_sphere_obb_collision(
+    query_sphere: mx.array,
+    weight: mx.array,
+    activation_distance: mx.array,
+    speed_dt: mx.array,
+    obb_accel: mx.array,
+    obb_bounds: mx.array,
+    obb_mat: mx.array,
+    obb_enable: mx.array,
+    n_env_obb: mx.array,
+    env_query_idx: mx.array,
+    max_nobs: int,
+    batch_size: int,
+    horizon: int,
+    n_spheres: int,
+    sweep_steps: int = 3,
+    enable_speed_metric: bool = False,
+    transform_back: bool = True,
+    compute_distance: bool = True,
+    use_batch_env: bool = True,
+    sum_collisions: bool = True,
+) -> tuple[mx.array, mx.array, mx.array]:
+    """Compute swept sphere-OBB collision matching upstream SdfSweptSphereOBB API.
+
+    Args:
+        query_sphere: [B, H, S, 4] or flat sphere positions + radius.
+        speed_dt: [1] timestep for speed metric.
+        sweep_steps: number of interpolation steps.
+        enable_speed_metric: scale cost by velocity.
+        Other args: same as get_sphere_obb_collision.
+
+    Returns:
+        out_distance: [B, H, S] cost.
+        out_grad: [B, H, S, 4] gradient vectors.
+        sparsity_idx: [B, H, S] uint8 collision flags.
+    """
+    w = float(weight.reshape(-1)[0].item())
+    eta = float(activation_distance.reshape(-1)[0].item())
+    dt = float(speed_dt.reshape(-1)[0].item())
+
+    if query_sphere.ndim == 2:
+        query_sphere = query_sphere.reshape(batch_size, horizon, n_spheres, 4)
+    elif query_sphere.ndim == 3:
+        query_sphere = query_sphere.reshape(batch_size, horizon, n_spheres, 4)
+
+    return swept_sphere_obb_distance(
+        sphere_position=query_sphere,
+        obb_mat=obb_mat,
+        obb_bounds=obb_bounds,
+        obb_enable=obb_enable,
+        n_env_obb=n_env_obb,
+        env_query_idx=env_query_idx,
+        max_nobs=max_nobs,
+        activation_distance=eta,
+        speed_dt=dt,
+        weight=w,
+        sweep_steps=sweep_steps,
+        enable_speed_metric=enable_speed_metric,
+        transform_back=transform_back,
+        sum_collisions=sum_collisions,
     )
