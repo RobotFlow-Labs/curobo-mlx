@@ -16,12 +16,10 @@ ArrayLike = Union[mx.array, np.ndarray, list, float, int]
 
 
 # ---------------------------------------------------------------------------
-# MLX version helper (mlx.__version__ doesn't exist)
+# MLX version helper -- canonical version lives in _backend.py
 # ---------------------------------------------------------------------------
 
-def get_mlx_version() -> str:
-    """Return the installed MLX version string."""
-    return importlib.metadata.version("mlx")
+from curobo_mlx._backend import get_mlx_version  # noqa: F401 — re-export
 
 
 # ---------------------------------------------------------------------------
@@ -133,7 +131,14 @@ class MLXDevice:
         return "mlx:0"
 
     def __eq__(self, other: object) -> bool:  # noqa: D105
-        return True
+        # Accept MLXDevice, strings ("mlx", "cuda", "cpu"), or objects with a .type attr
+        if isinstance(other, MLXDevice):
+            return True
+        if isinstance(other, str):
+            return True  # device-guard checks like `device == "cuda"` should pass
+        if hasattr(other, "type"):
+            return True  # torch.device compatibility
+        return NotImplemented
 
     def __hash__(self) -> int:  # noqa: D105
         return hash("mlx:0")

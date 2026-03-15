@@ -118,16 +118,6 @@ def get_pose_distance(
         use_metric=use_metric,
     )
 
-    # Reshape to match upstream output format [B*H] or [B, H]
-    if distance.ndim == 2:
-        flat_distance = distance.reshape(-1)
-        flat_p_dist = p_dist.reshape(-1)
-        flat_r_dist = r_dist.reshape(-1)
-    else:
-        flat_distance = distance
-        flat_p_dist = p_dist
-        flat_r_dist = r_dist
-
     return distance, p_dist, r_dist, p_vec, q_vec, best_idx
 
 

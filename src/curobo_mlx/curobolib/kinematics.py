@@ -7,7 +7,6 @@ CUDA-based function, but implemented purely in MLX.
 import mlx.core as mx
 
 from ..kernels.kinematics import forward_kinematics_batched
-from ..kernels.quaternion import rotation_matrix_to_quaternion
 
 
 def get_cuda_kinematics(

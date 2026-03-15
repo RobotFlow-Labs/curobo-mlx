@@ -132,7 +132,11 @@ class TestRotationDistance:
         )
         mx.eval(r_dist)
 
-        assert float(r_dist) > 0.1  # Should be nonzero
+        # 90 deg rotation → geodesic distance should be ~pi/2 ≈ 1.57
+        # or half that depending on the error formulation; at minimum > 0.5
+        r_val = float(r_dist)
+        assert r_val > 0.5, f"90-deg rotation distance too small: {r_val}"
+        assert r_val < 3.2, f"90-deg rotation distance too large: {r_val}"
 
     def test_antipodal_quaternions(self):
         """q and -q represent the same rotation; distance should be zero."""

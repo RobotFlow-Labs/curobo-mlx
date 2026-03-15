@@ -42,6 +42,11 @@ def timer(name: str = "op", verbose: bool = True):
         print(result)
 
 
+def _has_metal() -> bool:
+    """Check if MLX Metal backend is available."""
+    return hasattr(mx, "metal") and hasattr(mx.metal, "get_active_memory")
+
+
 def get_memory_info() -> Dict[str, float]:
     """Return current MLX memory usage in megabytes.
 
@@ -49,7 +54,11 @@ def get_memory_info() -> Dict[str, float]:
         ``active_mb``  -- memory currently in use
         ``peak_mb``    -- peak memory used since last reset
         ``cache_mb``   -- memory held in the allocator cache
+
+    Returns zeros if Metal backend is not available.
     """
+    if not _has_metal():
+        return {"active_mb": 0.0, "peak_mb": 0.0, "cache_mb": 0.0}
     return {
         "active_mb": mx.metal.get_active_memory() / 1e6,
         "peak_mb": mx.metal.get_peak_memory() / 1e6,
@@ -59,4 +68,5 @@ def get_memory_info() -> Dict[str, float]:
 
 def reset_peak_memory() -> None:
     """Reset the peak-memory watermark."""
-    mx.metal.reset_peak_memory()
+    if _has_metal():
+        mx.metal.reset_peak_memory()

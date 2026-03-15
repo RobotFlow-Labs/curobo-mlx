@@ -32,8 +32,11 @@ def franka_urdf_path(upstream_content_path):
 
 @pytest.fixture
 def random_joint_angles():
-    """Random joint angles for 7-DOF robot."""
-    return mx.random.uniform(-3.14, 3.14, (10, 7))
+    """Random joint angles for 7-DOF robot (deterministic seed)."""
+    mx.random.seed(12345)
+    result = mx.random.uniform(-3.14, 3.14, (10, 7))
+    mx.eval(result)
+    return result
 
 
 @pytest.fixture
