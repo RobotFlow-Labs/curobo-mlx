@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "curobo-mlx"
+version = "0.1.0"
+description = "cuRobo motion planning on Apple Silicon via MLX"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "AIFLOW LABS", email = "ilessio@aiflowlabs.io"}]
+dependencies = [
+    "mlx>=0.22.0",
+    "numpy>=1.24.0",
+    "scipy>=1.10.0",
+    "pyyaml>=6.0",
+    "trimesh>=3.20.0",
+    "yourdfpy>=0.0.53",
+    "networkx>=3.0",
+    "numpy-quaternion>=2022.4",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-benchmark>=4.0",
+    "ruff>=0.4.0",
+]
+torch = ["torch>=2.0.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["curobo_mlx*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]

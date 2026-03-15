@@ -1,0 +1,38 @@
+# Upstream source (submodule / clone)
+repositories/
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Claude Code
+.claude/settings.local.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# MLX build artifacts
+*.metallib
+
+# uv
+uv.lock
+
+# Benchmarks
+.benchmarks/
