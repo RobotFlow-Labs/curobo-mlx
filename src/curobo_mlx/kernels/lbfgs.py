@@ -59,11 +59,13 @@ def lbfgs_step(
         s_buffer = s[None]  # [1, B, V]
         rho_shifted = rho_buffer[:0]  # empty
 
-    # Compute new rho = 1 / numerator
+    # Compute new rho = 1 / numerator (guard division by zero)
     if stable_mode:
         new_rho = mx.where(numerator == 0.0, mx.zeros_like(numerator), 1.0 / numerator)
     else:
-        new_rho = 1.0 / numerator  # [B]
+        # Guard against division by zero on first iteration or when y.s == 0
+        safe_numerator = mx.where(numerator == 0.0, mx.ones_like(numerator), numerator)
+        new_rho = mx.where(numerator == 0.0, mx.zeros_like(numerator), 1.0 / safe_numerator)
 
     # Assemble rho_buffer: shifted old + new at end
     if M > 1:
@@ -102,7 +104,11 @@ def lbfgs_step(
                         mx.ones_like(denominator) * epsilon,
                         numerator / denominator)
     else:
-        var1 = numerator / denominator
+        # Guard against division by zero when y.y == 0 (gradient unchanged)
+        safe_denom = mx.where(denominator == 0.0, mx.ones_like(denominator), denominator)
+        var1 = mx.where(denominator == 0.0,
+                        mx.ones_like(denominator) * epsilon,
+                        numerator / safe_denom)
 
     gamma = mx.maximum(var1, mx.zeros_like(var1))  # relu
     r = gamma[:, None] * r

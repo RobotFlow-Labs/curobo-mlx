@@ -160,7 +160,11 @@ def quaternion_geodesic_distance(q1: mx.array, q2: mx.array) -> mx.array:
     dot = mx.abs(mx.sum(q1 * q2, axis=-1))
     # Clamp to [0, 1] for numerical safety
     dot = mx.minimum(dot, mx.array(1.0))
-    return 2.0 * mx.arccos(dot)
+    # Use 2*arcsin(sqrt((1-dot)/2)) which is more numerically stable near dot=1
+    # (avoids arccos cancellation near 1.0 where derivative diverges)
+    half_angle_sin_sq = (1.0 - dot) * 0.5
+    half_angle_sin_sq = mx.maximum(half_angle_sin_sq, mx.array(0.0))  # guard sqrt of negative
+    return 4.0 * mx.arcsin(mx.sqrt(half_angle_sin_sq))
 
 
 def quaternion_error(q_current: mx.array, q_goal: mx.array) -> mx.array:

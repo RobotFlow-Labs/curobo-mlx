@@ -7,6 +7,7 @@ are NOT implemented here -- they will be handled by a separate module.
 
 import mlx.core as mx
 
+from ..kernels.self_collision import self_collision_distance
 from ..kernels.pose_distance import (
     BATCH_GOAL,
     BATCH_GOALSET,
@@ -158,4 +159,43 @@ def get_pose_distance_backward(
         grad_p_vec=grad_p_vec,
         grad_q_vec=grad_q_vec,
         use_distance=use_distance,
+    )
+
+
+def get_self_collision_distance(
+    robot_spheres: mx.array,
+    offsets: mx.array,
+    coll_matrix: mx.array,
+    weight: mx.array,
+    use_sparse: bool = True,
+) -> tuple[mx.array, mx.array]:
+    """Compute self-collision distance matching upstream API.
+
+    Simplified MLX version of the upstream ``get_self_collision_distance``
+    which wraps the CUDA kernel. The upstream function takes many pre-allocated
+    buffers and thread configuration parameters; this version computes
+    everything from the essential inputs.
+
+    The upstream ``SelfCollisionDistance`` autograd function expects
+    ``robot_spheres`` with shape ``[B, H, S, 4]``. If you have that shape,
+    reshape to ``[B*H, S, 4]`` before calling this function.
+
+    Args:
+        robot_spheres: [B, S, 4] -- sphere positions (x, y, z) and radius.
+        offsets: [S] -- per-sphere radius inflation (collision_offset).
+        coll_matrix: [S, S] -- uint8 collision enable mask (1=check, 0=skip).
+        weight: [1] -- scalar cost weight.
+        use_sparse: Use sparse pair computation (default True).
+
+    Returns:
+        distance: [B] -- weighted maximum penetration distance (>= 0).
+        grad_spheres: [B, S, 4] -- gradient vector per sphere (direction to
+            separate the most-penetrating pair, weighted).
+    """
+    return self_collision_distance(
+        robot_spheres=robot_spheres,
+        offsets=offsets,
+        coll_matrix=coll_matrix,
+        weight=weight,
+        use_sparse=use_sparse,
     )

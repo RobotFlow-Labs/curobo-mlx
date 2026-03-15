@@ -46,11 +46,13 @@ class TestLBFGSStep:
             q = q + 0.01 * step_vec
             grad_q = grad_q + 0.01 * mx.random.normal([B, V])
 
-        # Check descent direction: step_vec . grad_q < 0 for each batch
+        # After sufficient history, L-BFGS should produce descent directions
+        # for a strong majority of batch elements
         dot_products = np.array(mx.sum(step_vec * grad_q, axis=-1))
-        # With random data, most should be descent directions
-        # (not guaranteed for all batches with limited history, but check at least some)
-        assert np.any(dot_products < 0), f"No descent directions found: {dot_products}"
+        descent_frac = float(np.mean(dot_products < 0))
+        assert descent_frac >= 0.5, (
+            f"Only {descent_frac*100:.0f}% descent directions (need >=50%): {dot_products}"
+        )
 
     def test_buffer_rolling(self):
         """Verify buffers shift correctly: new entry at M-1, old shift down."""

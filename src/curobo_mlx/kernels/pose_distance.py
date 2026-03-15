@@ -272,8 +272,9 @@ def pose_distance(
         r_conv_sq = vec_convergence[0] * vec_convergence[0]
         p_conv_sq = vec_convergence[1] * vec_convergence[1]
 
-        r_dist = mx.where(r_dist_sq > r_conv_sq, mx.sqrt(r_dist_sq), mx.zeros_like(r_dist_sq))
-        p_dist = mx.where(p_dist_sq > p_conv_sq, mx.sqrt(p_dist_sq), mx.zeros_like(p_dist_sq))
+        # Guard sqrt: ensure non-negative input (floating point can produce tiny negatives)
+        r_dist = mx.where(r_dist_sq > r_conv_sq, mx.sqrt(mx.maximum(r_dist_sq, mx.array(0.0))), mx.zeros_like(r_dist_sq))
+        p_dist = mx.where(p_dist_sq > p_conv_sq, mx.sqrt(mx.maximum(p_dist_sq, mx.array(0.0))), mx.zeros_like(p_dist_sq))
 
         # Compute weighted distance
         if use_metric:

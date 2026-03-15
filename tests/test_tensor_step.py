@@ -269,15 +269,16 @@ class TestPositionCliqueBackward:
                     loss_minus = float(loss_fn(mx.array(u_minus)).item())
                     fd_grad[b, h, d] = (loss_plus - loss_minus) / (2 * eps)
 
-        # Compare interior timesteps (h >= 4) where boundary effects don't interfere
-        # The backward kernel matches the CUDA kernel which also has slight boundary
-        # differences.
+        # Compare interior timesteps (h >= 4) where boundary effects don't interfere.
+        # The backward kernel does not propagate gradients through ghost positions
+        # reconstructed from start state, so boundary timesteps (h < 4) may differ.
         analytical = np.array(analytical_grad)
         interior_match = np.allclose(
-            analytical[:, 4:H-1, :], fd_grad[:, 4:H-1, :], atol=0.5, rtol=0.05
+            analytical[:, 4:H-1, :], fd_grad[:, 4:H-1, :], atol=0.1, rtol=0.05
         )
         assert interior_match, (
             f"Interior gradient mismatch.\n"
+            f"Max diff: {np.max(np.abs(analytical[:, 4:H-1, :] - fd_grad[:, 4:H-1, :]))}\n"
             f"Analytical[4:-1]:\n{analytical[:, 4:H-1, :]}\n"
             f"Finite diff[4:-1]:\n{fd_grad[:, 4:H-1, :]}"
         )

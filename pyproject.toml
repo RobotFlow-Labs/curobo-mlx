@@ -17,7 +17,6 @@ dependencies = [
     "trimesh>=3.20.0",
     "yourdfpy>=0.0.53",
     "networkx>=3.0",
-    "numpy-quaternion>=2022.4",
 ]
 
 [project.optional-dependencies]

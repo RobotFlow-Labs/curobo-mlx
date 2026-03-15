@@ -26,6 +26,17 @@ def wolfe_line_search(
 ) -> tuple[mx.array, mx.array, mx.array]:
     """Wolfe line search matching upstream API.
 
+    Parameter mapping (upstream name → kernel name):
+        sv  → step_vec      (search direction)
+        c   → c             (candidate costs)
+        c_idx → c_idx       (batch offset for flattened indexing)
+        al  → alpha_list    (step sizes)
+        sw  → strong_wolfe  (use strong Wolfe condition)
+        aw  → approx_wolfe  (use approximate Wolfe)
+
+    Note: upstream passes (c_idx, c_1, c_2, al) but kernel expects
+    (alpha_list, c_idx, c_1, c_2), so we reorder here.
+
     Returns: (best_x, best_c, best_grad)
     """
     return _wolfe_line_search(
@@ -50,6 +61,10 @@ def update_best(
     relative_threshold: float = 0.999,
 ) -> tuple[mx.array, mx.array, mx.array]:
     """Update best solution matching upstream API.
+
+    Args:
+        current_iteration: Kept for upstream API compatibility; unused by MLX kernel.
+        d_opt: DOF dimension; kept for API compat, unused by MLX kernel.
 
     Returns: (best_cost, best_q, best_iteration)
     """
