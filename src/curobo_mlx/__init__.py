@@ -15,6 +15,15 @@ Quick start::
 
 __version__ = "0.1.0"
 
+__all__ = [
+    "__version__",
+    "IKSolver",
+    "TrajOptSolver",
+    "MotionGen",
+    "list_robots",
+    "info",
+]
+
 _LAZY_API = {"IKSolver": "ik_solver", "TrajOptSolver": "trajopt", "MotionGen": "motion_gen"}
 
 

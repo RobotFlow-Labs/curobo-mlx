@@ -25,7 +25,10 @@ def check_backend() -> dict:
     """
     version = get_mlx_version()
     if version is None:
-        raise RuntimeError("MLX is not installed. Install with: uv pip install mlx")
+        raise RuntimeError(
+            "MLX is not installed. "
+            "Install with: pip install mlx (requires macOS with Apple Silicon)"
+        )
     if not is_apple_silicon():
         import warnings
 

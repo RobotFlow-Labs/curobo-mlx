@@ -48,7 +48,18 @@ class IKSolver:
             robot_name: e.g. ``'franka'``, ``'ur10e'``.
             **kwargs: Forwarded to ``IKSolver.__init__``.
         """
-        config = load_mlx_robot_config(robot_name)
+        try:
+            config = load_mlx_robot_config(robot_name)
+        except FileNotFoundError:
+            from curobo_mlx import list_robots
+
+            available = list_robots()
+            avail_str = ", ".join(available) if available else "(none found -- is the submodule initialized?)"
+            raise FileNotFoundError(
+                f"Robot '{robot_name}' not found. "
+                f"Available robots: {avail_str}. "
+                f"See curobo_mlx.list_robots()"
+            ) from None
         return IKSolver(config, **kwargs)
 
     def __init__(

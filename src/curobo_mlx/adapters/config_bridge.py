@@ -306,6 +306,15 @@ def load_mlx_robot_config(robot_name: str) -> MLXRobotModelConfig:
     robot_configs_path = get_robot_configs_path()
 
     urdf_path = os.path.join(assets_path, kin_cfg["urdf_path"])
+    if not os.path.exists(urdf_path):
+        raise FileNotFoundError(
+            f"URDF file not found at: {urdf_path}\n"
+            f"Expected from robot config '{robot_name}' (urdf_path: {kin_cfg['urdf_path']}).\n"
+            f"The file should exist in the upstream submodule at:\n"
+            f"    repositories/curobo-upstream/src/curobo/content/assets/\n"
+            f"To initialize the submodule, run:\n"
+            f"    git submodule update --init --recursive"
+        )
 
     # Link names to store poses for
     link_names = kin_cfg.get("link_names", None)

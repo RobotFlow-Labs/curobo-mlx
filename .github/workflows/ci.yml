@@ -1,10 +1,24 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  # ── Tests ──────────────────────────────────────────────────────────────
   test:
-    runs-on: macos-14  # M1 Apple Silicon runner
+    name: Tests (Python ${{ matrix.python-version }})
+    runs-on: macos-14  # Apple Silicon M1
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12"]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -12,13 +26,24 @@ jobs:
 
       - uses: astral-sh/setup-uv@v4
 
-      - name: Install dependencies
-        run: uv sync --extra dev
+      - name: Create venv and install
+        run: |
+          uv venv .venv --python ${{ matrix.python-version }}
+          uv sync --extra dev
 
       - name: Run tests
-        run: uv run pytest tests/ -q --tb=short
+        run: uv run pytest tests/ -v --tb=short --junitxml=test-results.xml
 
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.python-version }}
+          path: test-results.xml
+
+  # ── Import Safety ─────────────────────────────────────────────────────
   import-safety:
+    name: Import Safety
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
@@ -27,13 +52,38 @@ jobs:
 
       - uses: astral-sh/setup-uv@v4
 
-      - name: Install package
+      - name: Install (base only, no dev deps)
         run: uv sync
 
-      - name: Verify import
-        run: uv run python -c "import curobo_mlx; print(f'v{curobo_mlx.__version__}')"
+      - name: Verify core imports
+        run: |
+          uv run python -c "
+          import curobo_mlx
+          print(f'cuRobo-MLX v{curobo_mlx.__version__}')
+          curobo_mlx.info()
+          "
 
-  benchmark-smoke:
+      - name: Verify API imports
+        run: |
+          uv run python -c "
+          from curobo_mlx import IKSolver, TrajOptSolver, MotionGen
+          from curobo_mlx.adapters.types import MLXPose, MLXJointState
+          from curobo_mlx.kernels import kinematics, collision, pose_distance
+          print('All imports OK')
+          "
+
+      - name: Verify robot discovery
+        run: |
+          uv run python -c "
+          import curobo_mlx
+          robots = curobo_mlx.list_robots()
+          assert len(robots) > 0, 'No robots found'
+          print(f'Found {len(robots)} robots: {robots[:5]}...')
+          "
+
+  # ── Examples ───────────────────────────────────────────────────────────
+  examples:
+    name: Examples
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
@@ -42,8 +92,58 @@ jobs:
 
       - uses: astral-sh/setup-uv@v4
 
-      - name: Install dependencies
+      - name: Install
         run: uv sync --extra dev
 
-      - name: Run FK benchmark (smoke test)
-        run: uv run python benchmarks/bench_fk.py
+      - name: Run quickstart
+        run: uv run python examples/00_quickstart.py
+
+      - name: Run FK example
+        run: uv run python examples/01_forward_kinematics.py
+
+      - name: Run collision example
+        run: uv run python examples/02_collision_checking.py
+
+      - name: Run IK example
+        run: uv run python examples/03_ik_solver.py
+
+      - name: Run self-collision example
+        run: uv run python examples/04_self_collision.py
+
+  # ── Benchmarks ─────────────────────────────────────────────────────────
+  benchmarks:
+    name: Benchmarks
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: astral-sh/setup-uv@v4
+
+      - name: Install
+        run: uv sync --extra dev
+
+      - name: Run benchmark suite
+        run: uv run python benchmarks/run_all.py
+
+      - name: Run quick user benchmark
+        run: uv run python examples/07_benchmark_quick.py
+
+  # ── Lint ───────────────────────────────────────────────────────────────
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+
+      - name: Install ruff
+        run: uv tool install ruff
+
+      - name: Check formatting
+        run: ruff format --check src/ tests/
+
+      - name: Check linting
+        run: ruff check src/ tests/

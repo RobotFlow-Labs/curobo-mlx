@@ -56,7 +56,18 @@ class TrajOptSolver:
             world_obstacles: Reserved for future world collision data.
             **kwargs: Forwarded to ``TrajOptSolver.__init__``.
         """
-        config = load_mlx_robot_config(robot_name)
+        try:
+            config = load_mlx_robot_config(robot_name)
+        except FileNotFoundError:
+            from curobo_mlx import list_robots
+
+            available = list_robots()
+            avail_str = ", ".join(available) if available else "(none found -- is the submodule initialized?)"
+            raise FileNotFoundError(
+                f"Robot '{robot_name}' not found. "
+                f"Available robots: {avail_str}. "
+                f"See curobo_mlx.list_robots()"
+            ) from None
         return TrajOptSolver(config, world_obstacles=world_obstacles, **kwargs)
 
     def __init__(

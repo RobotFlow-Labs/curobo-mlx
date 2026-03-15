@@ -43,9 +43,10 @@ def get_upstream_content_path() -> str:
     )
     if not content.exists():
         raise FileNotFoundError(
-            f"Upstream content not found at {content}. "
-            "Make sure the curobo-upstream submodule is initialised: "
-            "git submodule update --init --recursive"
+            f"Upstream cuRobo submodule not found at {content}.\n"
+            "The upstream content directory is required for robot configs, URDFs, and assets.\n"
+            "To initialize it, run:\n"
+            "    git submodule update --init --recursive"
         )
     return str(content)
 
