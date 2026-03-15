@@ -183,6 +183,38 @@ Benchmarked on Apple M-series (unified memory architecture):
 
 All timings include MLX graph compilation. Batch sizes scale sub-linearly due to Metal GPU parallelism.
 
+### How MLX Uses the GPU
+
+MLX runs all tensor operations on Apple Silicon's **Metal GPU** by default. The key advantage for robotics is **unified memory** -- CPU and GPU share the same physical RAM, eliminating the data transfer overhead that dominates real-time control loops on discrete GPU systems (CUDA requires explicit CPU-to-GPU copies).
+
+```
+┌──────────────────────────────────────────────┐
+│            Apple Silicon (M1/M2/M3/M4)       │
+│                                              │
+│   ┌──────────┐    ┌──────────────────────┐   │
+│   │ CPU Cores│    │   Metal GPU Cores    │   │
+│   │ (P+E)    │    │   (up to 40 cores)   │   │
+│   └────┬─────┘    └──────────┬───────────┘   │
+│        │                     │               │
+│        └──────────┬──────────┘               │
+│                   │                          │
+│        ┌──────────▼──────────┐               │
+│        │   Unified Memory    │ ◄── zero-copy │
+│        │   (shared RAM)      │               │
+│        └─────────────────────┘               │
+└──────────────────────────────────────────────┘
+```
+
+GPU speedup at scale (matmul benchmark):
+
+| Matrix Size | GPU | CPU | Speedup |
+|---|---|---|---|
+| 1000 x 1000 | 3.9 ms | 1.3 ms | 0.3x (overhead dominates) |
+| 3000 x 3000 | 10.2 ms | 35.2 ms | **3.4x** |
+| 5000 x 5000 | 43.9 ms | 155.0 ms | **3.5x** |
+
+cuRobo-MLX benefits from GPU acceleration in batched FK (100+ configs), collision checking (52 spheres x 20 obstacles), and MPPI sampling (128+ particles).
+
 ---
 
 ## CUDA to MLX Kernel Port
