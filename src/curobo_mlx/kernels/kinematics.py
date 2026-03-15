@@ -42,25 +42,29 @@ def _eye4_batch(batch_size: int) -> mx.array:
     return mx.broadcast_to(eye, (batch_size, 4, 4))
 
 
+@mx.compile
 def rotation_matrix_x(angle: mx.array) -> mx.array:
     """Rotation about X axis. angle: [B] -> [B, 4, 4]
 
     Matching upstream xrot_fn: applies rotation R_x(angle) as a 4x4 homogeneous transform.
+    Uses single mx.stack + reshape instead of nested stacks (fewer graph ops).
     """
     cos_a = mx.cos(angle)
     sin_a = mx.sin(angle)
     zeros = mx.zeros_like(angle)
     ones = mx.ones_like(angle)
 
-    # Row-major 4x4 matrix
-    row0 = mx.stack([ones, zeros, zeros, zeros], axis=-1)
-    row1 = mx.stack([zeros, cos_a, -sin_a, zeros], axis=-1)
-    row2 = mx.stack([zeros, sin_a, cos_a, zeros], axis=-1)
-    row3 = mx.stack([zeros, zeros, zeros, ones], axis=-1)
+    # Build flat [B, 16] then reshape to [B, 4, 4]
+    mat = mx.stack([
+        ones, zeros, zeros, zeros,
+        zeros, cos_a, -sin_a, zeros,
+        zeros, sin_a, cos_a, zeros,
+        zeros, zeros, zeros, ones,
+    ], axis=-1)
+    return mat.reshape(angle.shape[0], 4, 4)
 
-    return mx.stack([row0, row1, row2, row3], axis=-2)
 
-
+@mx.compile
 def rotation_matrix_y(angle: mx.array) -> mx.array:
     """Rotation about Y axis. angle: [B] -> [B, 4, 4]"""
     cos_a = mx.cos(angle)
@@ -68,14 +72,16 @@ def rotation_matrix_y(angle: mx.array) -> mx.array:
     zeros = mx.zeros_like(angle)
     ones = mx.ones_like(angle)
 
-    row0 = mx.stack([cos_a, zeros, sin_a, zeros], axis=-1)
-    row1 = mx.stack([zeros, ones, zeros, zeros], axis=-1)
-    row2 = mx.stack([-sin_a, zeros, cos_a, zeros], axis=-1)
-    row3 = mx.stack([zeros, zeros, zeros, ones], axis=-1)
+    mat = mx.stack([
+        cos_a, zeros, sin_a, zeros,
+        zeros, ones, zeros, zeros,
+        -sin_a, zeros, cos_a, zeros,
+        zeros, zeros, zeros, ones,
+    ], axis=-1)
+    return mat.reshape(angle.shape[0], 4, 4)
 
-    return mx.stack([row0, row1, row2, row3], axis=-2)
 
-
+@mx.compile
 def rotation_matrix_z(angle: mx.array) -> mx.array:
     """Rotation about Z axis. angle: [B] -> [B, 4, 4]"""
     cos_a = mx.cos(angle)
@@ -83,12 +89,17 @@ def rotation_matrix_z(angle: mx.array) -> mx.array:
     zeros = mx.zeros_like(angle)
     ones = mx.ones_like(angle)
 
-    row0 = mx.stack([cos_a, -sin_a, zeros, zeros], axis=-1)
-    row1 = mx.stack([sin_a, cos_a, zeros, zeros], axis=-1)
-    row2 = mx.stack([zeros, zeros, ones, zeros], axis=-1)
-    row3 = mx.stack([zeros, zeros, zeros, ones], axis=-1)
+    mat = mx.stack([
+        cos_a, -sin_a, zeros, zeros,
+        sin_a, cos_a, zeros, zeros,
+        zeros, zeros, ones, zeros,
+        zeros, zeros, zeros, ones,
+    ], axis=-1)
+    return mat.reshape(angle.shape[0], 4, 4)
 
-    return mx.stack([row0, row1, row2, row3], axis=-2)
+
+# Pre-computed translation masks for each axis (created once, reused)
+_TRANS_MASKS = {}
 
 
 def translation_matrix(displacement: mx.array, axis: int) -> mx.array:
@@ -97,19 +108,16 @@ def translation_matrix(displacement: mx.array, axis: int) -> mx.array:
     Creates a 4x4 homogeneous translation matrix.
     """
     B = displacement.shape[0]
-    mat = mx.broadcast_to(mx.eye(4), (B, 4, 4)).astype(displacement.dtype)
-    # We need to set mat[:, axis, 3] = displacement
-    # Using functional update pattern
-    zeros = mx.zeros((B, 4, 4), dtype=displacement.dtype)
-    offset = mx.zeros((B, 4, 4), dtype=displacement.dtype)
-    # Build offset matrix with displacement at [axis, 3]
     disp_expanded = displacement[:, None, None]  # [B, 1, 1]
 
-    # Create a mask for position [axis, 3]
-    mask = mx.zeros((4, 4), dtype=displacement.dtype)
-    mask = mask.at[axis, 3].add(1.0)
-    mask = mx.broadcast_to(mask, (B, 4, 4))
+    # Cache the mask per axis (it never changes)
+    if axis not in _TRANS_MASKS:
+        mask = mx.zeros((4, 4), dtype=mx.float32)
+        mask = mask.at[axis, 3].add(1.0)
+        mx.eval(mask)
+        _TRANS_MASKS[axis] = mask
 
+    mask = mx.broadcast_to(_TRANS_MASKS[axis], (B, 4, 4))
     return mx.broadcast_to(mx.eye(4), (B, 4, 4)) + mask * disp_expanded
 
 
@@ -334,14 +342,26 @@ def transform_spheres(
     # Gather the transforms for each sphere's link: [B, n_spheres, 4, 4]
     sphere_transforms = cumul_mats[:, sphere_link_indices]
 
+    # Delegate to compiled inner function for GPU fusion
+    return _compiled_sphere_transform(sphere_transforms, robot_spheres, B, n_spheres)
+
+
+@mx.compile
+def _compiled_sphere_transform(
+    sphere_transforms: mx.array,
+    robot_spheres: mx.array,
+    B: int,
+    n_spheres: int,
+) -> mx.array:
+    """Compiled sphere transformation for better GPU utilization.
+
+    Pure tensor computation suitable for mx.compile fusion.
+    """
     # Sphere positions as homogeneous coordinates: [n_spheres, 4]
-    # (x, y, z, 1) for transformation
     sphere_pos_homo = mx.concatenate(
         [robot_spheres[:, :3], mx.ones((n_spheres, 1))], axis=-1
     )  # [n_spheres, 4]
 
-    # Transform: result[b, s] = transform[b, s] @ sphere_pos_homo[s]
-    # sphere_transforms: [B, n_spheres, 4, 4]
     # sphere_pos_homo: [n_spheres, 4] -> [1, n_spheres, 4, 1]
     sphere_pos_homo_expanded = sphere_pos_homo[None, :, :, None]  # [1, S, 4, 1]
 

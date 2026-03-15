@@ -30,6 +30,7 @@ _EPS = 1e-10
 # ---------------------------------------------------------------------------
 
 
+@mx.compile
 def _quat_rotate(q: mx.array, v: mx.array) -> mx.array:
     """Rotate vector v by quaternion q.
 
@@ -147,28 +148,19 @@ def _compute_closest_point(
     min_axis = mx.argmin(abs_val, axis=-1)  # [...]
 
     # Build the inside closest point: same as sphere_local but with one
-    # coordinate snapped to the face
-    inside_pt = mx.array(sphere_local)  # copy
+    # coordinate snapped to the face boundary with correct sign.
+    # Vectorized: for each axis, compute face_val and select based on min_axis.
+    sign = mx.where(sphere_local > 0, 1.0, -1.0)  # [..., 3]
+    face_vals = sign * bounds  # [..., 3]
 
-    # For each axis, snap to the face boundary with correct sign
-    for axis in range(3):
-        axis_mask = (min_axis == axis)  # [...]
-        sign = mx.where(sphere_local[..., axis] > 0, 1.0, -1.0)
-        face_val = sign * bounds[..., axis]
-        new_coord = mx.where(
-            axis_mask & inside,
-            face_val,
-            inside_pt[..., axis],
-        )
-        # Update using index trick - build new array
-        if axis == 0:
-            inside_pt_0 = new_coord
-        elif axis == 1:
-            inside_pt_1 = new_coord
-        else:
-            inside_pt_2 = new_coord
+    # Create mask per axis: [..., 3]
+    axis_indices = mx.arange(3)  # [3]
+    # Broadcast min_axis [...] to [..., 3]
+    axis_match = (min_axis[..., None] == axis_indices)  # [..., 3] bool
+    inside_match = inside[..., None] & axis_match  # [..., 3]
 
-    inside_closest = mx.stack([inside_pt_0, inside_pt_1, inside_pt_2], axis=-1)
+    # Snap to face where inside_match, keep sphere_local otherwise
+    inside_closest = mx.where(inside_match, face_vals, sphere_local)
 
     # Select closest point based on inside/outside
     closest = mx.where(inside[..., None], inside_closest, clamped)
@@ -319,11 +311,27 @@ def sphere_obb_distance(
     # We need to handle multi-env: each batch element b uses
     # env_query_idx[b] to index into OBB array at offset max_nobs * env_idx.
 
-    all_distance = mx.full((B, H, S), 0.0)
+    # Check if all batch elements use the same environment (common case).
+    # If so, delegate to the fully vectorized path which is much faster.
+    env_idx_list = env_query_idx.tolist()
+    if len(set(env_idx_list)) == 1:
+        return sphere_obb_distance_vectorized(
+            sphere_position, obb_mat, obb_bounds, obb_enable,
+            n_env_obb, env_query_idx, max_nobs,
+            activation_distance, weight, transform_back, sum_collisions,
+        )
+
+    # Multi-environment path: vectorize over obstacles within each batch element
+    # but still loop over unique environments.
+    all_distance = mx.zeros((B, H, S))
     all_grad = mx.zeros((B, H, S, 3))
 
-    for b in range(B):
-        env_idx = int(env_query_idx[b].item())
+    # Group batch elements by environment to reduce redundant computation
+    env_groups = {}
+    for b, env_idx in enumerate(env_idx_list):
+        env_groups.setdefault(env_idx, []).append(b)
+
+    for env_idx, batch_indices in env_groups.items():
         nboxes = int(n_env_obb[env_idx].item())
         start_idx = max_nobs * env_idx
 
@@ -333,105 +341,68 @@ def sphere_obb_distance(
         # Get OBB data for this environment
         obs_mat = obb_mat[start_idx : start_idx + nboxes]  # [O, 8]
         obs_bounds = obb_bounds[start_idx : start_idx + nboxes]  # [O, 4]
-        obs_enable = obb_enable[start_idx : start_idx + nboxes]  # [O]
+        obs_enable_env = obb_enable[start_idx : start_idx + nboxes]  # [O]
 
         obs_pos = obs_mat[:, :3]   # [O, 3]
-        obs_quat = obs_mat[:, 3:7]  # [O, 4] as (qw, qx, qy, qz)
-        obs_half = obs_bounds[:, :3] / 2.0  # [O, 3] half-extents
+        obs_quat = obs_mat[:, 3:7]  # [O, 4]
+        obs_half = obs_bounds[:, :3] / 2.0  # [O, 3]
 
-        # Process all horizon steps and spheres for this batch element
-        # sphere positions: [H, S, 3]
-        b_sph_pos = sph_pos[b]  # [H, S, 3]
-        b_sph_rad = inflated_rad[b]  # [H, S]
-        b_valid = valid_sphere[b]  # [H, S]
+        enable_mask = obs_enable_env.astype(mx.float32)  # [O]
 
-        b_max_dist = mx.zeros((H, S))
-        b_max_grad = mx.zeros((H, S, 3))
+        # Gather batch elements for this env: [Bg, H, S, 3]
+        bi = batch_indices
+        b_sph_pos = sph_pos[bi]      # [Bg, H, S, 3]
+        b_sph_rad = inflated_rad[bi]  # [Bg, H, S]
+        b_valid = valid_sphere[bi]    # [Bg, H, S]
+        Bg = len(bi)
 
-        for o in range(nboxes):
-            if int(obs_enable[o].item()) == 0:
-                continue
+        # Vectorize over obstacles: broadcast [Bg, H, S, 1, 3] with [1, 1, 1, O, 3]
+        sph_5d = b_sph_pos[:, :, :, None, :]        # [Bg, H, S, 1, 3]
+        obs_pos_5d = obs_pos[None, None, None, :, :]  # [1, 1, 1, O, 3]
+        obs_quat_5d = obs_quat[None, None, None, :, :]
+        obs_half_5d = obs_half[None, None, None, :, :]
 
-            o_pos = obs_pos[o]    # [3]
-            o_quat = obs_quat[o]  # [4]
-            o_half = obs_half[o]  # [3]
+        loc_sphere = _transform_sphere_quat(obs_pos_5d, obs_quat_5d, sph_5d)
 
-            # Transform all spheres to OBB local frame
-            # p_local = obb_pos + quat_rotate(quat, p_world)
-            loc_sphere = _transform_sphere_quat(
-                o_pos[None, None, :],  # [1, 1, 3]
-                o_quat[None, None, :],  # [1, 1, 4]
-                b_sph_pos,  # [H, S, 3]
-            )  # [H, S, 3]
+        abs_local = mx.abs(loc_sphere)
+        max_excess = mx.max(abs_local - obs_half_5d, axis=-1)  # [Bg, H, S, O]
+        inflated_5d = b_sph_rad[:, :, :, None]  # [Bg, H, S, 1]
+        in_aabb = max_excess < inflated_5d
+        valid_5d = b_valid[:, :, :, None]
+        enable_5d = enable_mask[None, None, None, :] > 0.5
+        process_mask = in_aabb & valid_5d & enable_5d  # [Bg, H, S, O]
 
-            # Build sphere with inflated radius for AABB check
-            # check_sphere_aabb: max(|x|-bx, |y|-by, |z|-bz) < sphere.w
-            abs_local = mx.abs(loc_sphere)
-            max_excess = mx.max(abs_local - o_half[None, None, :], axis=-1)  # [H, S]
-            in_aabb = max_excess < b_sph_rad  # [H, S]
+        delta, signed_dist, inside = _compute_closest_point(obs_half_5d, loc_sphere)
+        sph_dist = signed_dist + inflated_5d
+        grad_vec, cost = _scale_eta_metric(delta, sph_dist, eta)
 
-            # Only process spheres that pass AABB test and are valid
-            process_mask = in_aabb & b_valid  # [H, S]
+        cost = mx.where(process_mask, cost, 0.0)
+        grad_vec = mx.where(process_mask[..., None], grad_vec, 0.0)
 
-            if not mx.any(process_mask).item():
-                continue
+        if transform_back:
+            world_grad = _inv_quat_rotate(obs_quat_5d, grad_vec)
+            world_grad = mx.where((cost > 0)[..., None], world_grad, 0.0)
+        else:
+            world_grad = grad_vec
 
-            # Compute closest point
-            delta, signed_dist, inside = _compute_closest_point(
-                o_half[None, None, :],  # [1, 1, 3]
-                loc_sphere,  # [H, S, 3]
-            )
+        # cost: [Bg, H, S, O], world_grad: [Bg, H, S, O, 3]
+        if sum_collisions:
+            b_total_dist = mx.sum(cost, axis=3)  # [Bg, H, S]
+            b_total_grad = mx.sum(world_grad, axis=3)  # [Bg, H, S, 3]
+        else:
+            b_total_dist = mx.max(cost, axis=3)
+            O = nboxes
+            max_idx = mx.argmax(cost, axis=3)
+            one_hot = (mx.arange(O)[None, None, None, :] == max_idx[..., None]).astype(mx.float32)
+            b_total_grad = mx.sum(world_grad * one_hot[..., None], axis=3)
 
-            # sph_distance = signed_distance + sphere_radius (inflated)
-            sph_dist = signed_dist + b_sph_rad  # [H, S]
+        b_cost = weight * mx.where(b_valid, b_total_dist, 0.0)
+        b_grad_weighted = weight * b_total_grad
 
-            # Apply eta metric
-            grad_vec, cost = _scale_eta_metric(delta, sph_dist, eta)  # [H,S,3], [H,S]
-
-            # Zero out non-processed elements
-            cost = mx.where(process_mask, cost, 0.0)
-            grad_vec = mx.where(process_mask[..., None], grad_vec, 0.0)
-
-            if sum_collisions:
-                # Sum costs and gradients
-                b_max_dist = b_max_dist + cost
-
-                if transform_back:
-                    # Transform gradient back to world frame
-                    world_grad = _inv_quat_rotate(
-                        o_quat[None, None, :], grad_vec
-                    )
-                    b_max_grad = b_max_grad + mx.where(
-                        (cost > 0)[..., None], world_grad, 0.0
-                    )
-            else:
-                # Max: take the obstacle with highest cost
-                better = cost > b_max_dist
-                b_max_dist = mx.where(better, cost, b_max_dist)
-
-                if transform_back:
-                    world_grad = _inv_quat_rotate(
-                        o_quat[None, None, :], grad_vec
-                    )
-                    b_max_grad = mx.where(
-                        better[..., None], world_grad, b_max_grad
-                    )
-
-        # Apply weight
-        b_cost = weight * b_max_dist  # [H, S]
-        b_grad_weighted = weight * b_max_grad  # [H, S, 3]
-
-        # Zero out invalid spheres
-        b_cost = mx.where(b_valid, b_cost, 0.0)
-
-        # Build output for this batch
-        all_distance = all_distance.at[b].add(b_cost)
-
-        # Pad gradient with zero w component
-        grad_4d = mx.concatenate(
-            [b_grad_weighted, mx.zeros((H, S, 1))], axis=-1
-        )  # [H, S, 4]
-        all_grad = all_grad.at[b].add(b_grad_weighted)
+        # Scatter back into full batch arrays
+        for local_i, global_b in enumerate(bi):
+            all_distance = all_distance.at[global_b].add(b_cost[local_i])
+            all_grad = all_grad.at[global_b].add(b_grad_weighted[local_i])
 
     # Build final outputs
     out_distance = all_distance
@@ -498,57 +469,65 @@ def sphere_obb_distance_vectorized(
     obs_quat = obs_mat[:, 3:7]    # [O, 4]
     obs_half = obs_bounds[:, :3] / 2.0  # [O, 3]
 
-    # Enable mask
-    enable_mask = obs_enable.astype(mx.bool_)  # [O]
+    # Enable mask: [O]
+    enable_mask = obs_enable.astype(mx.float32)  # [O], 1.0 or 0.0
 
-    total_dist = mx.zeros((B, H, S))
-    total_grad = mx.zeros((B, H, S, 3))
+    # Fully vectorized over obstacles: broadcast sph_pos [B,H,S,3] with obs [O,3]
+    # sph_pos: [B, H, S, 3] -> [B, H, S, 1, 3]
+    # obs_pos: [O, 3] -> [1, 1, 1, O, 3]
+    sph_pos_5d = sph_pos[:, :, :, None, :]  # [B, H, S, 1, 3]
+    obs_pos_5d = obs_pos[None, None, None, :, :]  # [1, 1, 1, O, 3]
+    obs_quat_5d = obs_quat[None, None, None, :, :]  # [1, 1, 1, O, 4]
+    obs_half_5d = obs_half[None, None, None, :, :]  # [1, 1, 1, O, 3]
 
-    for o in range(nboxes):
-        if not enable_mask[o].item():
-            continue
+    # Transform all spheres to all OBB local frames: [B, H, S, O, 3]
+    loc_sphere = _transform_sphere_quat(obs_pos_5d, obs_quat_5d, sph_pos_5d)
 
-        o_pos = obs_pos[o]
-        o_quat = obs_quat[o]
-        o_half = obs_half[o]
+    # AABB check: [B, H, S, O]
+    abs_local = mx.abs(loc_sphere)
+    max_excess = mx.max(abs_local - obs_half_5d, axis=-1)  # [B, H, S, O]
+    inflated_rad_5d = inflated_rad[:, :, :, None]  # [B, H, S, 1]
+    in_aabb = max_excess < inflated_rad_5d  # [B, H, S, O]
+    valid_sphere_5d = valid_sphere[:, :, :, None]  # [B, H, S, 1]
+    process_mask = in_aabb & valid_sphere_5d  # [B, H, S, O]
 
-        # Transform all spheres: [B, H, S, 3]
-        loc_sphere = _transform_sphere_quat(
-            o_pos[None, None, None, :],
-            o_quat[None, None, None, :],
-            sph_pos,
-        )
+    # Apply enable mask: [B, H, S, O]
+    enable_mask_5d = enable_mask[None, None, None, :] > 0.5  # [1, 1, 1, O] bool
+    process_mask = process_mask & enable_mask_5d
 
-        # AABB check
-        abs_local = mx.abs(loc_sphere)
-        max_excess = mx.max(abs_local - o_half[None, None, None, :], axis=-1)
-        in_aabb = max_excess < inflated_rad
-        process_mask = in_aabb & valid_sphere
+    # Closest point: [B, H, S, O, 3], [B, H, S, O], [B, H, S, O]
+    delta, signed_dist, inside = _compute_closest_point(obs_half_5d, loc_sphere)
 
-        # Closest point
-        delta, signed_dist, inside = _compute_closest_point(
-            o_half[None, None, None, :], loc_sphere
-        )
+    # sph_distance
+    sph_dist = signed_dist + inflated_rad_5d  # [B, H, S, O]
 
-        sph_dist = signed_dist + inflated_rad
-        grad_vec, cost = _scale_eta_metric(delta, sph_dist, eta)
+    # Apply eta metric: [B, H, S, O, 3], [B, H, S, O]
+    grad_vec, cost = _scale_eta_metric(delta, sph_dist, eta)
 
-        cost = mx.where(process_mask, cost, 0.0)
-        grad_vec = mx.where(process_mask[..., None], grad_vec, 0.0)
+    # Zero out non-processed
+    cost = mx.where(process_mask, cost, 0.0)  # [B, H, S, O]
+    grad_vec = mx.where(process_mask[..., None], grad_vec, 0.0)  # [B, H, S, O, 3]
 
-        if sum_collisions:
-            total_dist = total_dist + cost
-            if transform_back:
-                world_grad = _inv_quat_rotate(o_quat[None, None, None, :], grad_vec)
-                total_grad = total_grad + mx.where(
-                    (cost > 0)[..., None], world_grad, 0.0
-                )
-        else:
-            better = cost > total_dist
-            total_dist = mx.where(better, cost, total_dist)
-            if transform_back:
-                world_grad = _inv_quat_rotate(o_quat[None, None, None, :], grad_vec)
-                total_grad = mx.where(better[..., None], world_grad, total_grad)
+    if transform_back:
+        # Transform gradients back to world frame for all obstacles at once
+        world_grad = _inv_quat_rotate(obs_quat_5d, grad_vec)  # [B, H, S, O, 3]
+        world_grad = mx.where((cost > 0)[..., None], world_grad, 0.0)
+    else:
+        world_grad = grad_vec
+
+    # cost: [B, H, S, O], world_grad: [B, H, S, O, 3]
+    if sum_collisions:
+        # Sum across obstacles dimension O (axis=3)
+        total_dist = mx.sum(cost, axis=3)  # [B, H, S]
+        total_grad = mx.sum(world_grad, axis=3)  # [B, H, S, 3]
+    else:
+        # Max across obstacles (axis=3)
+        max_idx = mx.argmax(cost, axis=3)  # [B, H, S]
+        total_dist = mx.max(cost, axis=3)  # [B, H, S]
+        # Gather gradient for the max obstacle
+        O = nboxes
+        one_hot = (mx.arange(O)[None, None, None, :] == max_idx[..., None]).astype(mx.float32)
+        total_grad = mx.sum(world_grad * one_hot[..., None], axis=3)  # [B, H, S, 3]
 
     out_distance = weight * mx.where(valid_sphere, total_dist, 0.0)
     out_grad_3d = weight * total_grad

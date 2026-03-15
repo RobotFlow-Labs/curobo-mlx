@@ -101,6 +101,7 @@ def _backward_difference_forward(
     return out_pos, out_vel, out_acc, out_jerk
 
 
+@mx.compile
 def _backward_difference_backward(
     grad_position: mx.array,       # [B, H, D]
     grad_velocity: mx.array,       # [B, H, D]
